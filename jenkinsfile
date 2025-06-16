@@ -16,13 +16,11 @@ pipeline {
         
         string(
             name: 'HOSTNAME',
-            defaultValue: '',
             description: 'Enter the hostname'
         )
         
         string(
             name: 'PERDIX_URL',
-            defaultValue: '',
             description: 'Enter the Perdix URL'
         )
         
@@ -40,68 +38,57 @@ pipeline {
         // Infrastructure related inputs
         string(
             name: 'EXISTING_SERVER_INSTANCE_ID',
-            defaultValue: '',
             description: 'Enter existing server instance ID'
         )
         
         string(
             name: 'LISTENER_ARN',
-            defaultValue: '',
             description: 'Enter Listener ARN'
         )
         
         string(
             name: 'APP_VOLUME_ID',
-            defaultValue: '',
             description: 'Enter App Volume ID'
         )
         
         string(
             name: 'APPDATA_VOLUME_ID',
-            defaultValue: '',
             description: 'Enter AppData Volume ID'
         )
         
         string(
             name: 'DATABASE_VOLUME_ID',
-            defaultValue: '',
             description: 'Enter Database Volume ID'
         )
         
         // Task checkboxes
         booleanParam(
             name: 'SETUP_HOSTNAME',
-            defaultValue: false,
             description: 'Setup hostname'
         )
         
         booleanParam(
             name: 'CONTAINERIZE_SERVICES',
-            defaultValue: false,
             description: 'Containerize services'
         )
         
         booleanParam(
             name: 'INSTALL_TELEPORT',
-            defaultValue: false,
             description: 'Install Teleport'
         )
         
         booleanParam(
             name: 'SETUP_LOGROTATION',
-            defaultValue: false,
             description: 'Setup logrotation'
         )
         
         booleanParam(
             name: 'SETUP_CRONJOB',
-            defaultValue: false,
             description: 'Setup cronjob'
         )
         
         booleanParam(
             name: 'SETUP_CHECKMK',
-            defaultValue: false,
             description: 'Setup CheckMK'
         )
     }
