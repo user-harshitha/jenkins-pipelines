@@ -1,0 +1,228 @@
+pipeline {
+    agent any
+
+    parameters {
+        choice(
+            name: 'CLIENT',
+            choices: ['ClientA', 'ClientB', 'ClientC'],
+            description: 'Select the client'
+        )
+        
+        choice(
+            name: 'ENVIRONMENT',
+            choices: ['dev', 'qa', 'prod'],
+            description: 'Select the environment'
+        )
+        
+        string(
+            name: 'HOSTNAME',
+            defaultValue: '',
+            description: 'Enter the hostname'
+        )
+        
+        string(
+            name: 'PERDIX_URL',
+            defaultValue: '',
+            description: 'Enter the Perdix URL'
+        )
+        
+        choice(
+            name: 'FILE_STORAGE',
+            choices: ['NFS', 'S3', 'EBS', 'EFS'],
+            description: 'Select file storage type'
+        )
+        
+        file(
+            name: 'CRONJOB_FILE',
+            description: 'Upload cronjob file'
+        )
+        
+        // Infrastructure related inputs
+        string(
+            name: 'EXISTING_SERVER_INSTANCE_ID',
+            defaultValue: '',
+            description: 'Enter existing server instance ID'
+        )
+        
+        string(
+            name: 'LISTENER_ARN',
+            defaultValue: '',
+            description: 'Enter Listener ARN'
+        )
+        
+        string(
+            name: 'APP_VOLUME_ID',
+            defaultValue: '',
+            description: 'Enter App Volume ID'
+        )
+        
+        string(
+            name: 'APPDATA_VOLUME_ID',
+            defaultValue: '',
+            description: 'Enter AppData Volume ID'
+        )
+        
+        string(
+            name: 'DATABASE_VOLUME_ID',
+            defaultValue: '',
+            description: 'Enter Database Volume ID'
+        )
+        
+        // Task checkboxes
+        booleanParam(
+            name: 'SETUP_HOSTNAME',
+            defaultValue: false,
+            description: 'Setup hostname'
+        )
+        
+        booleanParam(
+            name: 'CONTAINERIZE_SERVICES',
+            defaultValue: false,
+            description: 'Containerize services'
+        )
+        
+        booleanParam(
+            name: 'INSTALL_TELEPORT',
+            defaultValue: false,
+            description: 'Install Teleport'
+        )
+        
+        booleanParam(
+            name: 'SETUP_LOGROTATION',
+            defaultValue: false,
+            description: 'Setup logrotation'
+        )
+        
+        booleanParam(
+            name: 'SETUP_CRONJOB',
+            defaultValue: false,
+            description: 'Setup cronjob'
+        )
+        
+        booleanParam(
+            name: 'SETUP_CHECKMK',
+            defaultValue: false,
+            description: 'Setup CheckMK'
+        )
+    }
+
+    stages {
+        stage('Prepare') {
+            steps {
+                script {
+                    // Display all input parameters
+                    echo "Client: ${params.CLIENT}"
+                    echo "Environment: ${params.ENVIRONMENT}"
+                    echo "Hostname: ${params.HOSTNAME}"
+                    echo "Perdix URL: ${params.PERDIX_URL}"
+                    echo "File Storage: ${params.FILE_STORAGE}"
+                    echo "Existing Server Instance ID: ${params.EXISTING_SERVER_INSTANCE_ID}"
+                    echo "Listener ARN: ${params.LISTENER_ARN}"
+                    echo "App Volume ID: ${params.APP_VOLUME_ID}"
+                    echo "AppData Volume ID: ${params.APPDATA_VOLUME_ID}"
+                    echo "Database Volume ID: ${params.DATABASE_VOLUME_ID}"
+                    
+                    // Save uploaded cronjob file if provided
+                    if (params.SETUP_CRONJOB && params.CRONJOB_FILE) {
+                        writeFile file: 'cronjob_file', text: params.CRONJOB_FILE.readToString()
+                        echo "Cronjob file saved"
+                    }
+                }
+            }
+        }
+
+        stage('Run Ansible Playbooks') {
+            steps {
+                script {
+                    // Create inventory file
+                    sh 'echo "[target_host]" > inventory.ini'
+                    sh "echo \"${params.HOSTNAME}\" >> inventory.ini"
+
+                    // Run playbooks based on selected tasks
+                    if (params.SETUP_HOSTNAME) {
+                        ansiblePlaybook(
+                            playbook: 'playbooks/setup_hostname.yml',
+                            inventory: 'inventory.ini',
+                            extraVars: [
+                                hostname: params.HOSTNAME,
+                                environment: params.ENVIRONMENT
+                            ]
+                        )
+                    }
+
+                    if (params.CONTAINERIZE_SERVICES) {
+                        ansiblePlaybook(
+                            playbook: 'playbooks/containerize_services.yml',
+                            inventory: 'inventory.ini',
+                            extraVars: [
+                                client: params.CLIENT,
+                                perdix_url: params.PERDIX_URL,
+                                file_storage: params.FILE_STORAGE
+                            ]
+                        )
+                    }
+
+                    if (params.INSTALL_TELEPORT) {
+                        ansiblePlaybook(
+                            playbook: 'playbooks/install_teleport.yml',
+                            inventory: 'inventory.ini',
+                            extraVars: [
+                                environment: params.ENVIRONMENT
+                            ]
+                        )
+                    }
+
+                    if (params.SETUP_LOGROTATION) {
+                        ansiblePlaybook(
+                            playbook: 'playbooks/setup_logrotation.yml',
+                            inventory: 'inventory.ini'
+                        )
+                    }
+
+                    if (params.SETUP_CRONJOB) {
+                        ansiblePlaybook(
+                            playbook: 'playbooks/setup_cronjob.yml',
+                            inventory: 'inventory.ini',
+                            extraVars: [
+                                cronjob_file: 'cronjob_file'
+                            ]
+                        )
+                    }
+
+                    if (params.SETUP_CHECKMK) {
+                        ansiblePlaybook(
+                            playbook: 'playbooks/setup_checkmk.yml',
+                            inventory: 'inventory.ini',
+                            extraVars: [
+                                client: params.CLIENT,
+                                environment: params.ENVIRONMENT
+                            ]
+                        )
+                    }
+
+                    // Infrastructure playbooks (run if any infra parameters provided)
+                    if (params.EXISTING_SERVER_INSTANCE_ID || params.LISTENER_ARN || 
+                        params.APP_VOLUME_ID || params.APPDATA_VOLUME_ID || params.DATABASE_VOLUME_ID) {
+                        ansiblePlaybook(
+                            playbook: 'playbooks/infrastructure_setup.yml',
+                            inventory: 'inventory.ini',
+                            extraVars: [
+                                instance_id: params.EXISTING_SERVER_INSTANCE_ID,
+                                listener_arn: params.LISTENER_ARN,
+                                app_volume_id: params.APP_VOLUME_ID,
+                                appdata_volume_id: params.APPDATA_VOLUME_ID,
+                                database_volume_id: params.DATABASE_VOLUME_ID
+                            ]
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            cleanWs()
+        }
+    }
+}
