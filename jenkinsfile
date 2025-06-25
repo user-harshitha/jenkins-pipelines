@@ -127,8 +127,8 @@ pipeline {
 
 
                     // Display all input parameters
-                    echo "Client: ${params.client}"
-                    echo "Environment: ${params.environment}"
+                    echo "Client: ${params.CLIENT}"
+                    echo "Environment: ${params.ENVIRONMENT}"
                     echo "Hostname: ${params.HOSTNAME}"
                     echo "Perdix URL: ${params.PERDIX_URL}"
                     echo "File Storage: ${params.STORAGE_TYPE}"
@@ -224,7 +224,9 @@ pipeline {
 
     stage('AWS ALB Update') {
         steps {
-            env.TG_ARN=$(jq -r '.target_group_arn.value' tf_outputs.json)
+            def tfOutputs = readJSON file: 'tf_outputs.json'
+            env.TG_ARN = tfOutputs.target_group_arn.value
+            // env.TG_ARN=$(jq -r '.target_group_arn.value' tf_outputs.json)
             sh """
               python3 modify_alb_rule.py \
                 --listener-arn "${env.LISTENER_ARN}" \
