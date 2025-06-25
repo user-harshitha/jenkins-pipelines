@@ -4,13 +4,13 @@ pipeline {
     parameters {
         choice(
             name: 'CLIENT',
-            choices: ['ClientA', 'ClientB', 'ClientC'],
+            choices: ['arohan', 'ambit', 'cp', 'credent', 'demo', 'demo2019', 'develop', 'dvaraeregistry', 'finreach', 'gtp', 'indifi', 'kgfs', 'kgfs-liabilities', 'kinara', 'kissandhan', 'liquidityplatform', 'maitreya', 'mas', 'nafa', 'navadhan', 'newdemo', 'northernarc', 'samasta', 'samastalp', 'shramsarathi', 'smhfc', 'spicemoney'],
             description: 'Select the client'
         )
         
         choice(
             name: 'ENVIRONMENT',
-            choices: ['dev', 'qa', 'prod'],
+            choices: ['uat', 'sit', 'mig', 'preprod', 'produat', 'demo', 'videopd'],
             description: 'Select the environment'
         )
         
@@ -25,8 +25,8 @@ pipeline {
         )
         
         choice(
-            name: 'FILE_STORAGE',
-            choices: ['NFS', 'S3', 'EBS', 'EFS'],
+            name: 'STORAGE_TYPE',
+            choices: ['S3', 'local'],
             description: 'Select file storage type'
         )
         
@@ -42,11 +42,6 @@ pipeline {
         )
         
         string(
-            name: 'LISTENER_ARN',
-            description: 'Enter Listener ARN'
-        )
-        
-        string(
             name: 'APP_VOLUME_ID',
             description: 'Enter App Volume ID'
         )
@@ -59,6 +54,22 @@ pipeline {
         string(
             name: 'DATABASE_VOLUME_ID',
             description: 'Enter Database Volume ID'
+        )
+        
+        // Instance Tags
+        string(
+            name: 'TAG_Name',
+            description: 'Instance Name tag'
+        )
+        
+        string(
+            name: 'TAG_BillableParty',
+            description: 'Billable Party tag'
+        )
+        
+        string(
+            name: 'TAG_ServerCategory',
+            description: 'Server Category tag'
         )
         
         // Task checkboxes
@@ -86,28 +97,49 @@ pipeline {
             name: 'SETUP_CRONJOB',
             description: 'Setup cronjob'
         )
-        
-        booleanParam(
-            name: 'SETUP_CHECKMK',
-            description: 'Setup CheckMK'
-        )
+
     }
 
     stages {
+
         stage('Prepare') {
             steps {
                 script {
+                    // Setup Environmental variables
+                    env.AMI_ID                      = "ami-04d143d89e43ce7fb"   
+                    env.EXISTING_SERVER_INSTANCE_ID = params.EXISTING_SERVER_INSTANCE_ID      // Ubuntu 22.04 AMI
+                    env.VPC_ID                      = "vpc-0f6424f35dc01cb6c"
+                    env.SUBNET_ID                   = "subnet-09ffb189d6f69530a"
+                    env.KEY_PAIR                    = "ansible"
+                    env.AVAILABILITY_ZONE           = "ap-south-1a"
+                    env.ENVIRONMENT                 = params.ENVIRONMENT
+                    env.HOSTNAME                    = params.HOSTNAME
+                    env.VOLUME_ID_APP               = params.APP_VOLUME_ID
+                    env.VOLUME_ID_APPDATA           = params.APPDATA_VOLUME_ID
+                    env.VOLUME_ID_DATABASE          = params.DATABASE_VOLUME_ID
+                    env.ROUTE53_ZONE_ID             = "Z14HUFX62W338H"
+                    env.LISTENER_ARN                = "arn:aws:elasticloadbalancing:ap-south-1:203862109330:listener/app/DEV-MMB-ELB/617d6a7924757988/3c6ee87c6cfc2be5"
+                    env.PERDIX_URL                  = params.PERDIX_URL
+                    env.NAME_TG                     = params.TAG_Name
+                    env.BILLABLEPARTY_TG            = params.TAG_BillableParty
+                    env.SERVERCATEGORY_TG           = params.TAG_ServerCategory
+                    env.DNS_NAME                    = params.HOSTNAME
+
+
                     // Display all input parameters
-                    echo "Client: ${params.CLIENT}"
-                    echo "Environment: ${params.ENVIRONMENT}"
+                    echo "Client: ${params.client}"
+                    echo "Environment: ${params.environment}"
                     echo "Hostname: ${params.HOSTNAME}"
                     echo "Perdix URL: ${params.PERDIX_URL}"
-                    echo "File Storage: ${params.FILE_STORAGE}"
+                    echo "File Storage: ${params.STORAGE_TYPE}"
                     echo "Existing Server Instance ID: ${params.EXISTING_SERVER_INSTANCE_ID}"
-                    echo "Listener ARN: ${params.LISTENER_ARN}"
                     echo "App Volume ID: ${params.APP_VOLUME_ID}"
                     echo "AppData Volume ID: ${params.APPDATA_VOLUME_ID}"
                     echo "Database Volume ID: ${params.DATABASE_VOLUME_ID}"
+                    echo "Instance Tags:"
+                    echo "  Name: ${params.TAG_NAME}"
+                    echo "  BillableParty: ${params.TAG_BILLABLE_PARTY}"
+                    echo "  ServerCategory: ${params.TAG_SERVER_CATEGORY}"
                     
                     // Save uploaded cronjob file if provided
                     if (params.SETUP_CRONJOB && params.CRONJOB_FILE) {
@@ -118,6 +150,90 @@ pipeline {
             }
         }
 
+    stage('Checkout') {
+      steps {
+        git url: 'https://github.com/user-harshitha/terraform-scripts.git', branch: 'main'
+      }
+    }
+
+    stage('Generate tfvars') {
+      steps {
+        sh 'mkdir -p dvara-infra/Server_Upgrade/dev'
+        writeFile file: 'dvara-infra/Server_Upgrade/dev/terraform.tfvars', text: """
+          ami_id             = "${env.AMI_ID}"
+          existing_server_instance_id = "${env.EXISTING_SERVER_INSTANCE_ID}
+          subnet_id          = "${env.SUBNET_ID}"
+          key_pair           = "${env.KEY_PAIR}"
+          env                = "${env.ENVIRONMENT}"
+          availability_zone  = "${env.AVAILABILITY_ZONE}"
+          base_volume_id_app = "${env.VOLUME_ID_APP}"
+          base_volume_id_appdata = "${env.VOLUME_ID_APPDATA}"
+          base_volume_id_database = "${env.VOLUME_ID_DATABASE}"
+          hostname           = "${env.HOSTNAME}"
+          route53_zone_id    = "${env.ROUTE53_ZONE_ID}"
+          perdix_url         = "${env.PERDIX_URL}"
+          vpc_id             = "${env.VPC_ID}"
+          alb_https_listener_arn = "${env.LISTENER_ARN}"
+    
+          ebs_volume_tags = {
+            Name = "${env.NAME_TG}"
+            BillableParty = "${env.BILLABLEPARTY_TG}"
+          }
+    
+          instance_tags = {
+            Name = "${env.NAME_TG}"
+            BillableParty = "${env.BILLABLEPARTY_TG}"
+            ServerCategory = "${env.SERVERCATEGORY_TG}"
+            DNS_Name = "${env.DNS_NAME}"
+          }
+        """
+      }
+    }
+
+
+    stage('Setup AWS Credentials') {
+      steps {
+        withCredentials([usernamePassword(credentialsId: 'aws-creds', usernameVariable: 'AWS_ACCESS_KEY_ID', passwordVariable: 'AWS_SECRET_ACCESS_KEY')]) {
+          sh '''
+            export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+            export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+
+            cp terraform-scripts/Server_Upgrade/dev/* dvara-infra/Server_Upgrade/dev/
+            cd dvara-infra/Server_Upgrade/dev
+            terraform init
+            terraform plan -var-file="terraform.tfvars"
+          '''
+        }
+      }
+    }
+
+    stage('Terraform Apply') {
+      steps {
+        input message: 'Apply Terraform changes?'
+        withCredentials([usernamePassword(credentialsId: 'aws-creds', usernameVariable: 'AWS_ACCESS_KEY_ID', passwordVariable: 'AWS_SECRET_ACCESS_KEY')]) {
+          sh '''
+            export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+            export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+
+            terraform apply -auto-approve -var-file="terraform.tfvars"
+            terraform output -json > tf_outputs.json
+          '''
+        }
+      }
+    }
+
+    stage('AWS ALB Update') {
+        steps {
+            env.TG_ARN=$(jq -r '.target_group_arn.value' tf_outputs.json)
+            sh """
+              python3 modify_alb_rule.py \
+                --listener-arn "${env.LISTENER_ARN}" \
+                --host-header "${env.PERDIX_URL}" \
+                --target-group-arn "${env.TG_ARN}"
+        """
+        }
+    }
+
         stage('Run Ansible Playbooks') {
             steps {
                 script {
@@ -125,12 +241,21 @@ pipeline {
                     sh 'echo "[target_host]" > inventory.ini'
                     sh "echo \"${params.HOSTNAME}\" >> inventory.ini"
 
+                    // Common extra vars for all playbooks
+                    def commonExtraVars = [
+                        vpc_id: env.VPC_ID,
+                        subnet_id: env.SUBNET_ID,
+                        tag_name: params.TAG_NAME,
+                        tag_billable_party: params.TAG_BILLABLE_PARTY,
+                        tag_server_category: params.TAG_SERVER_CATEGORY
+                    ]
+
                     // Run playbooks based on selected tasks
                     if (params.SETUP_HOSTNAME) {
                         ansiblePlaybook(
                             playbook: 'playbooks/setup_hostname.yml',
                             inventory: 'inventory.ini',
-                            extraVars: [
+                            extraVars: commonExtraVars + [
                                 hostname: params.HOSTNAME,
                                 environment: params.ENVIRONMENT
                             ]
@@ -141,10 +266,10 @@ pipeline {
                         ansiblePlaybook(
                             playbook: 'playbooks/containerize_services.yml',
                             inventory: 'inventory.ini',
-                            extraVars: [
+                            extraVars: commonExtraVars + [
                                 client: params.CLIENT,
                                 perdix_url: params.PERDIX_URL,
-                                file_storage: params.FILE_STORAGE
+                                file_storage: params.STORAGE_TYPE
                             ]
                         )
                     }
@@ -153,7 +278,7 @@ pipeline {
                         ansiblePlaybook(
                             playbook: 'playbooks/install_teleport.yml',
                             inventory: 'inventory.ini',
-                            extraVars: [
+                            extraVars: commonExtraVars + [
                                 environment: params.ENVIRONMENT
                             ]
                         )
@@ -162,7 +287,8 @@ pipeline {
                     if (params.SETUP_LOGROTATION) {
                         ansiblePlaybook(
                             playbook: 'playbooks/setup_logrotation.yml',
-                            inventory: 'inventory.ini'
+                            inventory: 'inventory.ini',
+                            extraVars: commonExtraVars
                         )
                     }
 
@@ -170,7 +296,7 @@ pipeline {
                         ansiblePlaybook(
                             playbook: 'playbooks/setup_cronjob.yml',
                             inventory: 'inventory.ini',
-                            extraVars: [
+                            extraVars: commonExtraVars + [
                                 cronjob_file: 'cronjob_file'
                             ]
                         )
@@ -180,20 +306,20 @@ pipeline {
                         ansiblePlaybook(
                             playbook: 'playbooks/setup_checkmk.yml',
                             inventory: 'inventory.ini',
-                            extraVars: [
+                            extraVars: commonExtraVars + [
                                 client: params.CLIENT,
                                 environment: params.ENVIRONMENT
                             ]
                         )
                     }
 
-                    // Infrastructure playbooks (run if any infra parameters provided)
+                    // Infrastructure playbooks
                     if (params.EXISTING_SERVER_INSTANCE_ID || params.LISTENER_ARN || 
                         params.APP_VOLUME_ID || params.APPDATA_VOLUME_ID || params.DATABASE_VOLUME_ID) {
                         ansiblePlaybook(
                             playbook: 'playbooks/infrastructure_setup.yml',
                             inventory: 'inventory.ini',
-                            extraVars: [
+                            extraVars: commonExtraVars + [
                                 instance_id: params.EXISTING_SERVER_INSTANCE_ID,
                                 listener_arn: params.LISTENER_ARN,
                                 app_volume_id: params.APP_VOLUME_ID,
@@ -205,7 +331,7 @@ pipeline {
                 }
             }
         }
-    }
+  }
 
     post {
         always {
