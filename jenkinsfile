@@ -224,15 +224,17 @@ pipeline {
 
     stage('AWS ALB Update') {
         steps {
-            def tfOutputs = readJSON file: 'tf_outputs.json'
-            env.TG_ARN = tfOutputs.target_group_arn.value
-            // env.TG_ARN=$(jq -r '.target_group_arn.value' tf_outputs.json)
-            sh """
-              python3 modify_alb_rule.py \
-                --listener-arn "${env.LISTENER_ARN}" \
-                --host-header "${env.PERDIX_URL}" \
-                --target-group-arn "${env.TG_ARN}"
-        """
+            script {
+                def tfOutputs = readJSON file: 'tf_outputs.json'
+                env.TG_ARN = tfOutputs.target_group_arn.value
+            
+                sh """
+                python3 modify_alb_rule.py \
+                 --listener-arn "${env.LISTENER_ARN}" \
+                 --host-header "${env.PERDIX_URL}" \
+                  --target-group-arn "${env.TG_ARN}"
+            """
+            }
         }
     }
 
