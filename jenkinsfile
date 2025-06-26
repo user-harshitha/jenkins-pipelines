@@ -360,9 +360,9 @@ instance_tags = {
         }
   }
 
-    post {
-        always {
-            cleanWs()
-        }
-    }
+   // post {
+     //   always {
+       //     cleanWs()
+       // }
+    //}
 }
