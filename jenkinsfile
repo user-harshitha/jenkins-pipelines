@@ -112,7 +112,7 @@ pipeline {
                     env.PERDIX_URL                  = params.PERDIX_URL
                     env.NAME_TG                     = params.TAG_NAME
                     env.BILLABLEPARTY_TG            = params.CLIENT
-                    def serverCategoryTG = (params.ENVIRONMENT == 'sit') ? "Client-SIT" : "Client-UAT"
+                    def SERVERCATEGORY_TG = (params.ENVIRONMENT == 'sit') ? "Client-SIT" : "Client-UAT"
                     env.DNS_NAME                    = params.HOSTNAME
 
 
