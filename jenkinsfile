@@ -117,6 +117,8 @@ pipeline {
 
 
                     // Display all input parameters
+                    echo "AMI-ID: ${env.AMI_ID}"
+                    echo "EXISTING_SERVER_INSTANCE_ID: ${env.EXISTING_SERVER_INSTANCE_ID}"
                     echo "Client: ${params.CLIENT}"
                     echo "Environment: ${params.ENVIRONMENT}"
                     echo "Hostname: ${params.HOSTNAME}"
@@ -128,8 +130,8 @@ pipeline {
                     echo "Database Volume ID: ${params.DATABASE_VOLUME_ID}"
                     echo "Instance Tags:"
                     echo "  Name: ${params.TAG_NAME}"
-                    echo "  BillableParty: ${params.TAG_BILLABLEPARTY}"
-                    echo "  ServerCategory: ${params.TAG_SERVERCATEGORY}"
+                    echo "  BillableParty: ${env.BILLABLEPARTY_TG}"
+                    echo "  ServerCategory: ${params.SERVERCATEGORY_TG}"
                     
                     // Save uploaded cronjob file if provided
                     if (params.SETUP_CRONJOB && params.CRONJOB_FILE) {
