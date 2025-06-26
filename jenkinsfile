@@ -160,7 +160,7 @@ pipeline {
       steps {
         script {
             // Create directory in Jenkins workspace (absolute path)
-            def workspacePath = env.WORKSPACE  // This gives you the absolute path
+            def workspacePath = pwd()  // This gives you the absolute path
             def terraformDir = "${workspacePath}/dvara-infra/server-upgrade/dev"
         sh '''
         echo "Current workspace path: ${workspacePath}"
@@ -205,7 +205,7 @@ pipeline {
         steps {
             script {
                 // Use absolute paths and proper quoting
-                def workspacePath = env.WORKSPACE
+                def workspacePath = pwd()
                 def sourceDir = "${workspacePath}/terraform-scripts/Server_Upgrade/dev"
                 def targetDir = "${workspacePath}/dvara-infra/Server_Upgrade/dev"
             
