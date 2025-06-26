@@ -183,12 +183,10 @@ route53_zone_id    = "${env.ROUTE53_ZONE_ID}"
 perdix_url         = "${env.PERDIX_URL}"
 vpc_id             = "${env.VPC_ID}"
 alb_https_listener_arn = "${env.LISTENER_ARN}" 
-
 ebs_volume_tags = {
   Name = "${env.NAME_TG}"
   BillableParty = "${env.BILLABLEPARTY_TG}"
   }  
-
 instance_tags = {
   Name = "${env.NAME_TG}"
   BillableParty = "${env.BILLABLEPARTY_TG}"
