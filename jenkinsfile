@@ -96,6 +96,11 @@ pipeline {
             steps {
                 script {
                     // Setup Environmental variables
+                    if (params.ENVIRONMENT == 'sit') {
+                        
+                    } else {
+                        echo "Environment is UAT"
+                    }
                     env.AMI_ID                      = "ami-04d143d89e43ce7fb"   
                     env.EXISTING_SERVER_INSTANCE_ID = params.EXISTING_SERVER_INSTANCE_ID      // Ubuntu 22.04 AMI
                     env.VPC_ID                      = "vpc-0f6424f35dc01cb6c"
@@ -112,8 +117,12 @@ pipeline {
                     env.PERDIX_URL                  = params.PERDIX_URL
                     env.NAME_TG                     = params.TAG_NAME
                     env.BILLABLEPARTY_TG            = params.CLIENT
-                    def SERVERCATEGORY_TG = (params.ENVIRONMENT == 'sit') ? "Client-SIT" : "Client-UAT"
                     env.DNS_NAME                    = params.HOSTNAME
+                    if (params.ENVIRONMENT == 'sit') {
+                        env.SERVERCATEGORY_TG = "Client-SIT"
+                    } else {
+                        env.SERVERCATEGORY_TG = "Client-UAT"
+                    }
 
 
                     // Display all input parameters
@@ -131,7 +140,7 @@ pipeline {
                     echo "Instance Tags:"
                     echo "  Name: ${params.TAG_NAME}"
                     echo "  BillableParty: ${env.BILLABLEPARTY_TG}"
-                    echo "  ServerCategory: ${params.SERVERCATEGORY_TG}"
+                    echo "  ServerCategory: ${env.SERVERCATEGORY_TG}"
                     
                     // Save uploaded cronjob file if provided
                     if (params.SETUP_CRONJOB && params.CRONJOB_FILE) {
