@@ -161,10 +161,9 @@ pipeline {
         script {
             // Create directory in Jenkins workspace (absolute path)
             def workspacePath = pwd()  // This gives you the absolute path
-            def terraformDir = "${workspacePath}/dvara-infra/server-upgrade/dev"
+            def terraformDir = "/var/jenkins_home/workspace/dev-server-upgrade/dvara-infra/server-upgrade/dev"
         sh '''
-        echo "Current workspace path: ${workspacePath}"
-        mkdir -p "${terraformDir}"
+        echo "Current workspace path: ${pwd}"
         ls -la "${terraformDir}"
         echo $pwd
         echo "current working directory"
@@ -206,12 +205,11 @@ pipeline {
             script {
                 // Use absolute paths and proper quoting
                 def workspacePath = pwd()
-                def sourceDir = "${workspacePath}/terraform-scripts/Server_Upgrade/dev"
-                def targetDir = "${workspacePath}/dvara-infra/Server_Upgrade/dev"
+                def sourceDir = "/var/jenkins_home/workspace/dev-server-upgrade/terraform-scripts/Server_Upgrade/dev"
+                def targetDir = "/var/jenkins_home/workspace/dev-server-upgrade/dvara-infra/server-upgrade/dev"
             
                 sh """
                     echo "Copying Terraform scripts..."
-                    mkdir -p "${targetDir}"
                     cp -r "${sourceDir}/"* "${targetDir}/"
                     cd "${targetDir}"
                     echo "Current directory after cd: \$(pwd)"
