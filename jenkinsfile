@@ -58,17 +58,17 @@ pipeline {
         
         // Instance Tags
         string(
-            name: 'TAG_Name',
+            name: 'TAG_NAME',
             description: 'Instance Name tag'
         )
         
         string(
-            name: 'TAG_BillableParty',
+            name: 'TAG_BILLABLEPARTY',
             description: 'Billable Party tag'
         )
         
         string(
-            name: 'TAG_ServerCategory',
+            name: 'TAG_SERVERCATEGORY',
             description: 'Server Category tag'
         )
         
@@ -120,9 +120,9 @@ pipeline {
                     env.ROUTE53_ZONE_ID             = "Z14HUFX62W338H"
                     env.LISTENER_ARN                = "arn:aws:elasticloadbalancing:ap-south-1:203862109330:listener/app/DEV-MMB-ELB/617d6a7924757988/3c6ee87c6cfc2be5"
                     env.PERDIX_URL                  = params.PERDIX_URL
-                    env.NAME_TG                     = params.TAG_Name
-                    env.BILLABLEPARTY_TG            = params.TAG_BillableParty
-                    env.SERVERCATEGORY_TG           = params.TAG_ServerCategory
+                    env.NAME_TG                     = params.TAG_NAME
+                    env.BILLABLEPARTY_TG            = params.TAG_BILLABLEPARTY
+                    env.SERVERCATEGORY_TG           = params.TAG_SERVERCATEGORY
                     env.DNS_NAME                    = params.HOSTNAME
 
 
@@ -138,8 +138,8 @@ pipeline {
                     echo "Database Volume ID: ${params.DATABASE_VOLUME_ID}"
                     echo "Instance Tags:"
                     echo "  Name: ${params.TAG_NAME}"
-                    echo "  BillableParty: ${params.TAG_BILLABLE_PARTY}"
-                    echo "  ServerCategory: ${params.TAG_SERVER_CATEGORY}"
+                    echo "  BillableParty: ${params.TAG_BILLABLEPARTY}"
+                    echo "  ServerCategory: ${params.TAG_SERVERCATEGORY}"
                     
                     // Save uploaded cronjob file if provided
                     if (params.SETUP_CRONJOB && params.CRONJOB_FILE) {
