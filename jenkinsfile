@@ -62,16 +62,6 @@ pipeline {
             description: 'Instance Name tag'
         )
         
-        string(
-            name: 'TAG_BILLABLEPARTY',
-            description: 'Billable Party tag'
-        )
-        
-        string(
-            name: 'TAG_SERVERCATEGORY',
-            description: 'Server Category tag'
-        )
-        
         // Task checkboxes
         booleanParam(
             name: 'SETUP_HOSTNAME',
@@ -121,8 +111,8 @@ pipeline {
                     env.LISTENER_ARN                = "arn:aws:elasticloadbalancing:ap-south-1:203862109330:listener/app/DEV-MMB-ELB/617d6a7924757988/3c6ee87c6cfc2be5"
                     env.PERDIX_URL                  = params.PERDIX_URL
                     env.NAME_TG                     = params.TAG_NAME
-                    env.BILLABLEPARTY_TG            = params.TAG_BILLABLEPARTY
-                    env.SERVERCATEGORY_TG           = params.TAG_SERVERCATEGORY
+                    env.BILLABLEPARTY_TG            = params.CLIENT
+                    env.SERVERCATEGORY_TG           = (params.ENVIRONMENT == 'sit') ? "Client-SIT" : "Client-UAT"
                     env.DNS_NAME                    = params.HOSTNAME
 
 
