@@ -225,6 +225,7 @@ pipeline {
       steps {
         withCredentials([usernamePassword(credentialsId: 'aws-creds', usernameVariable: 'AWS_ACCESS_KEY_ID', passwordVariable: 'AWS_SECRET_ACCESS_KEY')]) {
           sh '''
+            cd /var/jenkins_home/workspace/dvara-infra/server-upgrade/dev
             echo "Current directory after cd: \$(pwd)"
             ls -la            
             export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
@@ -241,6 +242,7 @@ pipeline {
         input message: 'Apply Terraform changes?'
         withCredentials([usernamePassword(credentialsId: 'aws-creds', usernameVariable: 'AWS_ACCESS_KEY_ID', passwordVariable: 'AWS_SECRET_ACCESS_KEY')]) {
           sh '''
+            cd /var/jenkins_home/workspace/dvara-infra/server-upgrade/dev
             export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
             export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
 
@@ -258,6 +260,7 @@ pipeline {
                 env.TG_ARN = tfOutputs.target_group_arn.value
             
                 sh """
+                /var/jenkins_home/workspace/dvara-infra/server-upgrade/dev
                 python3 modify_alb_rule.py \
                  --listener-arn "${env.LISTENER_ARN}" \
                  --host-header "${env.PERDIX_URL}" \
@@ -366,9 +369,9 @@ pipeline {
         }
   }
 
-//    post {
-//        always {
-//            cleanWs()
-//        }
-//    }
+    post {
+        always {
+            cleanWs()
+        }
+    }
 }
