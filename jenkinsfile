@@ -169,32 +169,30 @@ pipeline {
         echo "current working directory"
         '''
         writeFile file: '/var/jenkins_home/workspace/dvara-infra/server-upgrade/dev/terraform.tfvars', text: """
-          ami_id             = "${env.AMI_ID}"
-          existing_server_instance_id = "${env.EXISTING_SERVER_INSTANCE_ID}
-          subnet_id          = "${env.SUBNET_ID}"
-          key_pair           = "${env.KEY_PAIR}"
-          env                = "${env.ENVIRONMENT}"
-          availability_zone  = "${env.AVAILABILITY_ZONE}"
-          base_volume_id_app = "${env.VOLUME_ID_APP}"
-          base_volume_id_appdata = "${env.VOLUME_ID_APPDATA}"
-          base_volume_id_database = "${env.VOLUME_ID_DATABASE}"
-          hostname           = "${env.HOSTNAME}"
-          route53_zone_id    = "${env.ROUTE53_ZONE_ID}"
-          perdix_url         = "${env.PERDIX_URL}"
-          vpc_id             = "${env.VPC_ID}"
-          alb_https_listener_arn = "${env.LISTENER_ARN}"
-    
-          ebs_volume_tags = {
-            Name = "${env.NAME_TG}"
-            BillableParty = "${env.BILLABLEPARTY_TG}"
-          }
-    
-          instance_tags = {
-            Name = "${env.NAME_TG}"
-            BillableParty = "${env.BILLABLEPARTY_TG}"
-            ServerCategory = "${env.SERVERCATEGORY_TG}"
-            DNS_Name = "${env.DNS_NAME}"
-          }
+ami_id             = "${env.AMI_ID}"
+existing_server_instance_id = "${env.EXISTING_SERVER_INSTANCE_ID}
+subnet_id          = "${env.SUBNET_ID}"
+key_pair           = "${env.KEY_PAIR}"
+env                = "${env.ENVIRONMENT}"
+availability_zone  = "${env.AVAILABILITY_ZONE}"
+base_volume_id_app = "${env.VOLUME_ID_APP}"
+base_volume_id_appdata = "${env.VOLUME_ID_APPDATA}"
+base_volume_id_database = "${env.VOLUME_ID_DATABASE}"
+hostname           = "${env.HOSTNAME}"
+route53_zone_id    = "${env.ROUTE53_ZONE_ID}"
+perdix_url         = "${env.PERDIX_URL}"
+vpc_id             = "${env.VPC_ID}"
+alb_https_listener_arn = "${env.LISTENER_ARN}"  
+ebs_volume_tags = {
+  Name = "${env.NAME_TG}"
+  BillableParty = "${env.BILLABLEPARTY_TG}"
+  }  
+instance_tags = {
+  Name = "${env.NAME_TG}"
+  BillableParty = "${env.BILLABLEPARTY_TG}"
+  ServerCategory = "${env.SERVERCATEGORY_TG}"
+  DNS_Name = "${env.DNS_NAME}"
+  }
         """
       }
        }
