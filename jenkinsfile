@@ -158,11 +158,16 @@ pipeline {
 
     stage('Generate tfvars') {
       steps {
+        script {
+            // Create directory in Jenkins workspace (absolute path)
+            def workspacePath = env.WORKSPACE  // This gives you the absolute path
+            def terraformDir = "${workspacePath}/dvara-infra/server-upgrade/dev"
         sh '''
+        echo "Current workspace path: ${workspacePath}"
+        mkdir -p "${terraformDir}"
+        ls -la "${terraformDir}"
         echo $pwd
         echo "current working directory"
-        mkdir -p dvara-infra/Server_Upgrade/dev'
-
         '''
         writeFile file: 'dvara-infra/Server_Upgrade/dev/terraform.tfvars', text: """
           ami_id             = "${env.AMI_ID}"
@@ -193,8 +198,31 @@ pipeline {
           }
         """
       }
+       }
     }
 
+    stage('Copy Terraform Scripts') {
+        steps {
+            script {
+                // Use absolute paths and proper quoting
+                def workspacePath = env.WORKSPACE
+                def sourceDir = "${workspacePath}/terraform-scripts/Server_Upgrade/dev"
+                def targetDir = "${workspacePath}/dvara-infra/Server_Upgrade/dev"
+            
+                sh """
+                    echo "Copying Terraform scripts..."
+                    mkdir -p "${targetDir}"
+                    cp -r "${sourceDir}/"* "${targetDir}/"
+                    cd "${targetDir}"
+                    echo "Current directory after cd: \$(pwd)"
+                    ls -la
+                """
+            
+                // Store the working directory for later stages
+                env.TF_WORKING_DIR = targetDir
+            }
+        }
+    }
 
     stage('Setup AWS Credentials') {
       steps {
@@ -202,9 +230,6 @@ pipeline {
           sh '''
             export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
             export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
-
-            cp terraform-scripts/Server_Upgrade/dev/* dvara-infra/Server_Upgrade/dev/
-            cd dvara-infra/Server_Upgrade/dev
             terraform init
             terraform plan -var-file="terraform.tfvars"
           '''
@@ -342,9 +367,9 @@ pipeline {
         }
   }
 
-    post {
-        always {
-            cleanWs()
-        }
-    }
+//    post {
+//        always {
+//            cleanWs()
+//        }
+//    }
 }
