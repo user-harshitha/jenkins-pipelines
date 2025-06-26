@@ -204,7 +204,7 @@ pipeline {
         steps {
             script {
                 // Use absolute paths and proper quoting
-                def sourceDir = "/var/jenkins_home/workspace/dev-server-upgrade/terraform-scripts/Server_Upgrade/dev"
+                def sourceDir = "/var/jenkins_home/workspace/dev-server-upgrade/Server_Upgrade/dev"
                 def targetDir = "/var/jenkins_home/workspace/dev-server-upgrade/dvara-infra/server-upgrade/dev"
             
                 sh """
