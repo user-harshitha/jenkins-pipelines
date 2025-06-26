@@ -170,7 +170,7 @@ pipeline {
         '''
         writeFile file: '/var/jenkins_home/workspace/dvara-infra/server-upgrade/dev/terraform.tfvars', text: """
 ami_id             = "${env.AMI_ID}"
-existing_server_instance_id = "${env.EXISTING_SERVER_INSTANCE_ID}
+existing_server_instance_id = "${env.EXISTING_SERVER_INSTANCE_ID}"
 subnet_id          = "${env.SUBNET_ID}"
 key_pair           = "${env.KEY_PAIR}"
 env                = "${env.ENVIRONMENT}"
@@ -182,11 +182,13 @@ hostname           = "${env.HOSTNAME}"
 route53_zone_id    = "${env.ROUTE53_ZONE_ID}"
 perdix_url         = "${env.PERDIX_URL}"
 vpc_id             = "${env.VPC_ID}"
-alb_https_listener_arn = "${env.LISTENER_ARN}"  
+alb_https_listener_arn = "${env.LISTENER_ARN}" 
+
 ebs_volume_tags = {
   Name = "${env.NAME_TG}"
   BillableParty = "${env.BILLABLEPARTY_TG}"
   }  
+
 instance_tags = {
   Name = "${env.NAME_TG}"
   BillableParty = "${env.BILLABLEPARTY_TG}"
@@ -228,6 +230,7 @@ instance_tags = {
             ls -la            
             export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
             export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+            terraform validate
             terraform init
             terraform plan -var-file="terraform.tfvars"
           '''
