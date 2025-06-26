@@ -158,7 +158,12 @@ pipeline {
 
     stage('Generate tfvars') {
       steps {
-        sh 'mkdir -p dvara-infra/Server_Upgrade/dev'
+        sh '''
+        echo $pwd
+        echo "current working directory"
+        mkdir -p dvara-infra/Server_Upgrade/dev'
+
+        '''
         writeFile file: 'dvara-infra/Server_Upgrade/dev/terraform.tfvars', text: """
           ami_id             = "${env.AMI_ID}"
           existing_server_instance_id = "${env.EXISTING_SERVER_INSTANCE_ID}
