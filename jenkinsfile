@@ -96,11 +96,6 @@ pipeline {
             steps {
                 script {
                     // Setup Environmental variables
-                    if (params.ENVIRONMENT == 'sit') {
-                        
-                    } else {
-                        echo "Environment is UAT"
-                    }
                     env.AMI_ID                      = "ami-04d143d89e43ce7fb"   
                     env.EXISTING_SERVER_INSTANCE_ID = params.EXISTING_SERVER_INSTANCE_ID      // Ubuntu 22.04 AMI
                     env.VPC_ID                      = "vpc-0f6424f35dc01cb6c"
@@ -265,7 +260,7 @@ stage('AWS ALB Update') {
         def tfOutputs = readJSON file: 'tf_outputs.json'
         env.TG_ARN = tfOutputs.target_group_arn.value
         sh """
-          python3 modify_alb_rule.py \
+          /opt/venv/bin/python modify_alb_rule.py \
             --listener-arn "${env.LISTENER_ARN}" \
             --host-header "${env.PERDIX_URL}" \
             --target-group-arn "${env.TG_ARN}"
@@ -375,9 +370,9 @@ stage('AWS ALB Update') {
         }
   }
 
-   // post {
-     //   always {
-       //     cleanWs()
-       // }
-    //}
+    post {
+        always {
+            cleanWs()
+        }
+    }
 }
