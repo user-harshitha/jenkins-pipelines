@@ -261,6 +261,9 @@ instance_tags = {
     stage('AWS ALB Update') {
         steps {
             script {
+                sh '''
+                cd /var/jenkins_home/workspace/dvara-infra/server-upgrade/dev
+                '''
                 def tfOutputs = readJSON file: 'tf_outputs.json'
                 env.TG_ARN = tfOutputs.target_group_arn.value
             
