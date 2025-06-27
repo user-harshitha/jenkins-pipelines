@@ -239,6 +239,8 @@ instance_tags = {
 
     stage('Terraform Apply') {
       steps {
+        script {
+
         input message: 'Apply Terraform changes?'
         withCredentials([usernamePassword(credentialsId: 'aws-creds', usernameVariable: 'AWS_ACCESS_KEY_ID', passwordVariable: 'AWS_SECRET_ACCESS_KEY')]) {
           sh '''
@@ -256,7 +258,9 @@ instance_tags = {
              --listener-arn "${env.LISTENER_ARN}" \
              --host-header "${env.PERDIX_URL}" \
              --target-group-arn "${env.TG_ARN}"
-          """                   
+          """   
+           
+        }                
         }
       }
     }
