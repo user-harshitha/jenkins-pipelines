@@ -258,25 +258,23 @@ instance_tags = {
       }
     }
 
-    stage('AWS ALB Update') {
-        steps {
-            script {
-                sh '''
-                cd /var/jenkins_home/workspace/dvara-infra/server-upgrade/dev
-                '''
-                def tfOutputs = readJSON file: 'tf_outputs.json'
-                env.TG_ARN = tfOutputs.target_group_arn.value
-            
-                sh """
-                /var/jenkins_home/workspace/dvara-infra/server-upgrade/dev
-                python3 modify_alb_rule.py \
-                 --listener-arn "${env.LISTENER_ARN}" \
-                 --host-header "${env.PERDIX_URL}" \
-                  --target-group-arn "${env.TG_ARN}"
-            """
-            }
-        }
+stage('AWS ALB Update') {
+  steps {
+    script {
+      dir('/var/jenkins_home/workspace/dvara-infra/server-upgrade/dev') {
+        def tfOutputs = readJSON file: 'tf_outputs.json'
+        env.TG_ARN = tfOutputs.target_group_arn.value
+        sh """
+          python3 modify_alb_rule.py \
+            --listener-arn "${env.LISTENER_ARN}" \
+            --host-header "${env.PERDIX_URL}" \
+            --target-group-arn "${env.TG_ARN}"
+        """
+      }
     }
+  }
+}
+
 
         stage('Run Ansible Playbooks') {
             steps {
