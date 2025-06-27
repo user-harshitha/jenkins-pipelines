@@ -249,26 +249,17 @@ instance_tags = {
             terraform apply -auto-approve -var-file="terraform.tfvars"
             terraform output -json > tf_outputs.json
           '''
+          def tfOutputs = readJSON file: 'tf_outputs.json'
+          env.TG_ARN = tfOutputs.target_group_arn.value
+          sh """
+           /opt/venv/bin/python modify_alb_rule.py \
+             --listener-arn "${env.LISTENER_ARN}" \
+             --host-header "${env.PERDIX_URL}" \
+             --target-group-arn "${env.TG_ARN}"
+          """                   
         }
       }
     }
-
-stage('AWS ALB Update') {
-  steps {
-    script {
-      dir('/var/jenkins_home/workspace/dvara-infra/server-upgrade/dev') {
-        def tfOutputs = readJSON file: 'tf_outputs.json'
-        env.TG_ARN = tfOutputs.target_group_arn.value
-        sh """
-          /opt/venv/bin/python modify_alb_rule.py \
-            --listener-arn "${env.LISTENER_ARN}" \
-            --host-header "${env.PERDIX_URL}" \
-            --target-group-arn "${env.TG_ARN}"
-        """
-      }
-    }
-  }
-}
 
 
         stage('Run Ansible Playbooks') {
