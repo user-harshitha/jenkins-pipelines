@@ -240,7 +240,7 @@ instance_tags = {
     stage('Terraform Apply') {
       steps {
         script {
-
+        dir('cd /var/jenkins_home/workspace/dvara-infra/server-upgrade/dev')
         input message: 'Apply Terraform changes?'
         withCredentials([usernamePassword(credentialsId: 'aws-creds', usernameVariable: 'AWS_ACCESS_KEY_ID', passwordVariable: 'AWS_SECRET_ACCESS_KEY')]) {
           sh '''
@@ -254,6 +254,7 @@ instance_tags = {
           def tfOutputs = readJSON file: 'tf_outputs.json'
           env.TG_ARN = tfOutputs.target_group_arn.value
           sh """
+           
            /opt/venv/bin/python modify_alb_rule.py \
              --listener-arn "${env.LISTENER_ARN}" \
              --host-header "${env.PERDIX_URL}" \
