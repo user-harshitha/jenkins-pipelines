@@ -139,143 +139,17 @@ pipeline {
                     
                     // Save uploaded cronjob file if provided
                     if (params.SETUP_CRONJOB && params.CRONJOB_FILE) {
-                        writeFile file: 'cronjob_file', text: params.CRONJOB_FILE.readToString()
+                        writeFile file: '/var/jenkins_home/workspace/dvara-infra/server-upgrade/dev/cronjob.txt', text: params.CRONJOB_FILE.readToString()
                         echo "Cronjob file saved"
                     }
                 }
             }
         }
 
-    stage('Checkout') {
-      steps {
-        git url: 'https://github.com/user-harshitha/terraform-scripts.git', branch: 'main'
-      }
-    }
-
-    stage('Generate tfvars') {
-  steps {
-    script {
-      def tfvarsContent = """
-ami_id                    = "${env.AMI_ID}"
-existing_server_instance_id = "${env.EXISTING_SERVER_INSTANCE_ID}"
-subnet_id                 = "${env.SUBNET_ID}"
-key_pair                  = "${env.KEY_PAIR}"
-env                       = "${env.ENVIRONMENT}"
-availability_zone         = "${env.AVAILABILITY_ZONE}"
-base_volume_id_app        = "${env.VOLUME_ID_APP}"
-base_volume_id_appdata    = "${env.VOLUME_ID_APPDATA}"
-base_volume_id_database   = "${env.VOLUME_ID_DATABASE}"
-hostname                  = "${env.HOSTNAME}"
-route53_zone_id           = "${env.ROUTE53_ZONE_ID}"
-perdix_url                = "${env.PERDIX_URL}"
-vpc_id                    = "${env.VPC_ID}"
-alb_https_listener_arn    = "${env.LISTENER_ARN}"
-
-ebs_volume_tags = {
-  Name           = "${env.NAME_TG}"
-  BillableParty  = "${env.BILLABLEPARTY_TG}"
-}
-
-instance_tags = {
-  Name           = "${env.NAME_TG}"
-  BillableParty  = "${env.BILLABLEPARTY_TG}"
-  ServerCategory = "${env.SERVERCATEGORY_TG}"
-  DNS_Name       = "${env.DNS_NAME}"
-}
-"""
-
-      // Log for verification
-      echo "Generated terraform.tfvars content:\n${tfvarsContent}"
-
-      // Write file to target path
-      writeFile file: '/var/jenkins_home/workspace/dvara-infra/server-upgrade/dev/terraform.tfvars', text: tfvarsContent
-      sh '''
-      echo "current working directory"
-      ls -la /var/jenkins_home/workspace/dev-server-upgrade/
-      echo $pwd
-      '''
-
-    }
-  }
-}
-
-    stage('Copy Terraform Scripts') {
-        steps {
-            script {
-                // Use absolute paths and proper quoting
-                def sourceDir = "/var/jenkins_home/workspace/dev-server-upgrade/Server_Upgrade/dev"
-                def targetDir = "/var/jenkins_home/workspace/dvara-infra/server-upgrade/dev"
-            
-                sh """
-                    echo "Copying Terraform scripts..."
-                    cp -r "${sourceDir}/"* "${targetDir}/"
-                    cd "${targetDir}"
-                    echo "Current directory after cd: \$(pwd)"
-                    ls -la
-                """
-            
-                // Store the working directory for later stages
-                env.TF_WORKING_DIR = targetDir
-            }
-        }
-    }
-
-    stage('Setup AWS Credentials') {
-      steps {
-        withCredentials([usernamePassword(credentialsId: 'aws-creds', usernameVariable: 'AWS_ACCESS_KEY_ID', passwordVariable: 'AWS_SECRET_ACCESS_KEY')]) {
-          sh '''
-            cd /var/jenkins_home/workspace/dvara-infra/server-upgrade/dev
-            echo "Current directory after cd: \$(pwd)"
-            ls -la            
-            export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
-            export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
-            terraform init
-            terraform validate
-            terraform plan -var-file="terraform.tfvars"
-          '''
-        }
-      }
-    }
-
-stage('Terraform Apply & ALB Update') {
-  steps {
-    script {
-      dir('/var/jenkins_home/workspace/dvara-infra/server-upgrade/dev') {
-
-        input message: 'Apply Terraform changes?'
-
-        withCredentials([usernamePassword(credentialsId: 'aws-creds', usernameVariable: 'AWS_ACCESS_KEY_ID', passwordVariable: 'AWS_SECRET_ACCESS_KEY')]) {
-
-          withEnv(["AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID", 
-                   "AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY", 
-                   "AWS_DEFAULT_REGION=ap-south-1"]) {
-
-            sh '''
-              terraform apply -auto-approve -var-file="terraform.tfvars"
-              terraform output -json > tf_outputs.json
-            '''
-
-            def tfOutputs = readJSON file: 'tf_outputs.json'
-            def tgArn = tfOutputs.target_group_arn.value
-
-            // Call Python script with values
-            sh """
-              /opt/venv/bin/python modify_alb_rule.py \
-                --listener-arn "${env.LISTENER_ARN}" \
-                --host-header "${env.PERDIX_URL}" \
-                --target-group-arn "${tgArn}"
-            """
-          }
-        }
-      }
-    }
-  }
-}
-
-
         stage('Run Ansible Playbooks') {
             steps {
                 script {
+                    dir('/var/jenkins_home/workspace/ansible') {
                     // Create inventory file
                     sh 'echo "[target_host]" > inventory.ini'
                     sh "echo \"${params.HOSTNAME}\" >> inventory.ini"
@@ -289,14 +163,14 @@ stage('Terraform Apply & ALB Update') {
                         tag_server_category: params.TAG_SERVER_CATEGORY
                     ]
 
+                sshagent(credentials: ['ansible_ssh']) {
                     // Run playbooks based on selected tasks
                     if (params.SETUP_HOSTNAME) {
                         ansiblePlaybook(
                             playbook: 'playbooks/setup_hostname.yml',
                             inventory: 'inventory.ini',
                             extraVars: commonExtraVars + [
-                                hostname: params.HOSTNAME,
-                                environment: params.ENVIRONMENT
+                                hostname: env.HOSTNAME
                             ]
                         )
                     }
@@ -304,21 +178,24 @@ stage('Terraform Apply & ALB Update') {
                     if (params.CONTAINERIZE_SERVICES) {
                         ansiblePlaybook(
                             playbook: 'playbooks/containerize_services.yml',
-                            inventory: 'inventory.ini',
-                            extraVars: commonExtraVars + [
-                                client: params.CLIENT,
-                                perdix_url: params.PERDIX_URL,
-                                file_storage: params.STORAGE_TYPE
-                            ]
+                            inventory: 'inventory.ini'
                         )
                     }
 
                     if (params.INSTALL_TELEPORT) {
+                        parameters {
+                            string(
+                            name: 'JOIN_TOKEN',
+                            description: 'Enter the Token to install teleport'
+                            )
+                        }
                         ansiblePlaybook(
                             playbook: 'playbooks/install_teleport.yml',
                             inventory: 'inventory.ini',
-                            extraVars: commonExtraVars + [
-                                environment: params.ENVIRONMENT
+                            extraVars: [
+                                join_token: params.JOIN_TOKEN,
+                                env: params.ENVIRONMENT,
+                                client: params.CLIENT
                             ]
                         )
                     }
@@ -326,8 +203,7 @@ stage('Terraform Apply & ALB Update') {
                     if (params.SETUP_LOGROTATION) {
                         ansiblePlaybook(
                             playbook: 'playbooks/setup_logrotation.yml',
-                            inventory: 'inventory.ini',
-                            extraVars: commonExtraVars
+                            inventory: 'inventory.ini'
                         )
                     }
 
@@ -335,38 +211,14 @@ stage('Terraform Apply & ALB Update') {
                         ansiblePlaybook(
                             playbook: 'playbooks/setup_cronjob.yml',
                             inventory: 'inventory.ini',
-                            extraVars: commonExtraVars + [
-                                cronjob_file: 'cronjob_file'
+                            extraVars: [
+                                cron_file_local: '/var/jenkins_home/workspace/dvara-infra/server-upgrade/dev/cronjob.txt'
                             ]
                         )
                     }
 
-                    if (params.SETUP_CHECKMK) {
-                        ansiblePlaybook(
-                            playbook: 'playbooks/setup_checkmk.yml',
-                            inventory: 'inventory.ini',
-                            extraVars: commonExtraVars + [
-                                client: params.CLIENT,
-                                environment: params.ENVIRONMENT
-                            ]
-                        )
-                    }
-
-                    // Infrastructure playbooks
-                    if (params.EXISTING_SERVER_INSTANCE_ID || params.LISTENER_ARN || 
-                        params.APP_VOLUME_ID || params.APPDATA_VOLUME_ID || params.DATABASE_VOLUME_ID) {
-                        ansiblePlaybook(
-                            playbook: 'playbooks/infrastructure_setup.yml',
-                            inventory: 'inventory.ini',
-                            extraVars: commonExtraVars + [
-                                instance_id: params.EXISTING_SERVER_INSTANCE_ID,
-                                listener_arn: params.LISTENER_ARN,
-                                app_volume_id: params.APP_VOLUME_ID,
-                                appdata_volume_id: params.APPDATA_VOLUME_ID,
-                                database_volume_id: params.DATABASE_VOLUME_ID
-                            ]
-                        )
-                    }
+                }
+                }
                 }
             }
         }
