@@ -138,7 +138,7 @@ pipeline {
                     echo "  ServerCategory: ${env.SERVERCATEGORY_TG}"
                     
                     // Save uploaded cronjob file if provided
-                   // sh "mkdir -p /var/jenkins_home/workspace/dvara-infra/server-upgrade/dev"
+                    sh "mkdir -p /var/jenkins_home/workspace/dvara-infra/server-upgrade/dev"
                     sh "cp '${params.CRONJOB_FILE}' '/var/jenkins_home/workspace/dvara-infra/server-upgrade/dev/cronjob.txt'"
                     echo "Cronjob file saved"
                 }
