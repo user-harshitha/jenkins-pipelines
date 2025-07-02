@@ -68,6 +68,11 @@ pipeline {
             description: 'Containerize services'
         )
 
+        string(
+            name: 'JOIN_TOKEN',
+            description: 'Enter Join Token to install teleport'
+        )
+
         booleanParam(
             name: 'INSTALL_TELEPORT',
             description: 'Install Teleport'
@@ -195,10 +200,11 @@ pipeline {
                     }
 
                     if (params.INSTALL_TELEPORT) {
-                        def tokenInput = input(
-                        message: 'Teleport installation selected. Please enter JOIN_TOKEN:',
-                        parameters: [string(name: 'JOIN_TOKEN', description: 'Teleport join token')]
-                        )
+                        // uncomment if dynamic inputs are required
+                       // def tokenInput = input(
+                       // message: 'Teleport installation selected. Please enter JOIN_TOKEN:',
+                       // parameters: [string(name: 'JOIN_TOKEN', description: 'Teleport join token')]
+                       // )
 
                         ansiblePlaybook(
                             playbook: 'playbooks/install_teleport.yml',
