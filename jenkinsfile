@@ -139,10 +139,6 @@ pipeline {
                     echo "  Name: ${params.TAG_NAME}"
                     echo "  BillableParty: ${env.BILLABLEPARTY_TG}"
                     echo "  ServerCategory: ${env.SERVERCATEGORY_TG}"
-                    
-                    // Save uploaded cronjob file if provided
-                    echo "SETUP_CRONJOB: ${params.SETUP_CRONJOB}"
-                    echo "CRONJOB_FILE: ${params.CRONJOB_FILE}"
 
                     withFileParameter('CRONJOB_FILE'){
                     sh 'cat $CRONJOB_FILE > /var/jenkins_home/workspace/dvara-infra/server-upgrade/dev/cronjob.txt'
@@ -182,11 +178,7 @@ pipeline {
                         tag_server_category: params.TAG_SERVER_CATEGORY
                     ]
 
-                sshagent(credentials: ['ansible_ssh']) {
-                    sh '''
-                    echo "Current directory after cd: \$(pwd)"
-                    ls -la  
-                    '''
+                    sshagent(credentials: ['ansible_ssh']) {
                     // Run playbooks based on selected tasks
                     if (params.SETUP_HOSTNAME) {
                         ansiblePlaybook(
@@ -240,8 +232,11 @@ pipeline {
                         )
                     }
 
-                }
-                }
+                    }
+                
+                    }
+                
+                
                 }
             }
         }
