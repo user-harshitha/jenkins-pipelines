@@ -30,11 +30,6 @@ pipeline {
             description: 'Select file storage type'
         )
         
-        file(
-            name: 'CRONJOB_FILE',
-            description: 'Upload cronjob file'
-        )
-        
         // Infrastructure related inputs
         string(
             name: 'EXISTING_SERVER_INSTANCE_ID',
@@ -73,16 +68,27 @@ pipeline {
             description: 'Containerize services'
         )
         
+    //    string(
+    //        name: 'JOIN_TOKEN', 
+    //        description: 'Enter the token to install Teleport'
+    //    )
+
         booleanParam(
             name: 'INSTALL_TELEPORT',
             description: 'Install Teleport'
         )
-        
+
+
         booleanParam(
             name: 'SETUP_LOGROTATION',
             description: 'Setup logrotation'
         )
         
+        file(
+            name: 'CRONJOB_FILE',
+            description: 'Upload cronjob file'
+        )
+
         booleanParam(
             name: 'SETUP_CRONJOB',
             description: 'Setup cronjob'
@@ -171,6 +177,7 @@ pipeline {
                     ]
 
                 sshagent(credentials: ['ansible_ssh']) {
+                    sh 'echo $pwd - working directory '
                     // Run playbooks based on selected tasks
                     if (params.SETUP_HOSTNAME) {
                         ansiblePlaybook(
@@ -190,12 +197,11 @@ pipeline {
                     }
 
                     if (params.INSTALL_TELEPORT) {
-                        parameters {
-                            string(
-                            name: 'JOIN_TOKEN',
-                            description: 'Enter the Token to install teleport'
-                            )
-                        }
+                        def tokenInput = input(
+                        message: 'Teleport installation selected. Please enter JOIN_TOKEN:',
+                        parameters: [string(name: 'JOIN_TOKEN', description: 'Teleport join token')]
+                        )
+
                         ansiblePlaybook(
                             playbook: 'playbooks/install_teleport.yml',
                             inventory: 'inventory.ini',
