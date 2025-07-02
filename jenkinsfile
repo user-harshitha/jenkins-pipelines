@@ -67,11 +67,6 @@ pipeline {
             name: 'CONTAINERIZE_SERVICES',
             description: 'Containerize services'
         )
-        
-    //    string(
-    //        name: 'JOIN_TOKEN', 
-    //        description: 'Enter the token to install Teleport'
-    //    )
 
         booleanParam(
             name: 'INSTALL_TELEPORT',
@@ -177,7 +172,10 @@ pipeline {
                     ]
 
                 sshagent(credentials: ['ansible_ssh']) {
-                    sh 'echo $pwd - working directory '
+                    sh '''
+                    echo "Current directory after cd: \$(pwd)"
+                    ls -la  
+                    '''
                     // Run playbooks based on selected tasks
                     if (params.SETUP_HOSTNAME) {
                         ansiblePlaybook(
