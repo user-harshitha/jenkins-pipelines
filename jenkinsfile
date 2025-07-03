@@ -54,7 +54,7 @@ pipeline {
     }
 
     environment {
-    ENV_PATH = "clients/${params.CLIENT}/${params.ENVIRONMENT}"
+    ENV_PATH = "../dvara-infra/dev-server-upgrade/clients/${params.CLIENT}/${params.ENVIRONMENT}"
     }
 
     stages {
@@ -104,15 +104,15 @@ pipeline {
                     echo "  BillableParty: ${env.BILLABLEPARTY_TG}"
                     echo "  ServerCategory: ${env.SERVERCATEGORY_TG}"
 
-                    def envPath = "clients/${params.ENVIRONMENT}/${params.CLIENT}"
+                    def envPath = "../dvara-infra/dev-server-upgrade/clients/${params.CLIENT}/${params.ENVIRONMENT}"
             
             def result = sh(script: """
-                cd clients
-                if [ -d "${params.ENVIRONMENT}/${params.CLIENT}" ]; then
+                cd ../dvara-infra/dev-server-upgrade/clients
+                if [ -d "${params.CLIENT}/${params.ENVIRONMENT}" ]; then
                   echo "Server already upgraded"
                   exit 1
                 else
-                  mkdir -p ${params.ENVIRONMENT}/${params.CLIENT}
+                  mkdir -p ${params.CLIENT}/${params.ENVIRONMENT}
                 fi
             """, returnStatus: true)
 
@@ -167,6 +167,22 @@ instance_tags = {
       echo "Generated terraform.tfvars content:\n${tfvarsContent}"
 
 dir(env.ENV_PATH) {
+            withCredentials([usernamePassword(
+        credentialsId: 'git-creds',
+        usernameVariable: 'GIT_USERNAME',
+        passwordVariable: 'GIT_TOKEN'
+      )]) {
+
+        // Fetch latest repo
+        sh """
+          # Set Git user config
+          git config user.email "harshithas22@gmail.com"
+          git config user.name "user-harshitha"
+
+          git remote set-url origin https://${GIT_USERNAME}:${GIT_TOKEN}@github.com/user-harshitha/dvara-infra.git
+          git pull origin main
+        """
+      }
                 // Write the tfvars file here
                 writeFile file: 'terraform.tfvars', text: tfvarsContent
 
@@ -254,8 +270,35 @@ stage('Terraform Apply & ALB Update') {
     }
   }
 }
+
+stage('Commit Terraform State') {
+  steps {
+    script {
+        dir(env.ENV_PATH){
+        withCredentials([usernamePassword(
+        credentialsId: 'git-creds',
+        usernameVariable: 'GIT_USERNAME',
+        passwordVariable: 'GIT_TOKEN'
+      )]) {
+
+        // Clone repo, copy state, commit and push
+        sh """
+          # Set Git user config
+          git config user.email "harshithas22@gmail.com"
+          git config user.name "user-harshitha"
+
+          git remote set-url origin https://${GIT_USERNAME}:${GIT_TOKEN}@github.com/user-harshitha/dvara-infra.git
+          git status
+          git add terraform.tfstate terraform.tfvars 
+          git commit -m "Update state for ${params.ENVIRONMENT}-${params.CLIENT}"
+          git push origin main
+        """
+      }
+        }
  
-    }              
+    }
+  }
+}               
 
    // post {
        // always {
