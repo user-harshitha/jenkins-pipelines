@@ -272,7 +272,7 @@ stage('Terraform Apply & ALB Update') {
             '''
 
             def tfOutputs = readJSON file: 'tf_outputs.json'
-            def tgArn = tfOutputs.target_group_arn.value
+            def tgArn = tfOutputs.target_group_info.value.arn
 
             // Call Python script with values
             sh """
