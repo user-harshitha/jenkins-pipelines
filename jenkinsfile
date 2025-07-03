@@ -54,10 +54,33 @@ pipeline {
     }
 
     environment {
-    ENV_PATH = "../dvara-infra/dev-server-upgrade/clients/${params.CLIENT}/${params.ENVIRONMENT}"
+    ENV_PATH = "dvara-infra/dev-server-upgrade/clients/${params.CLIENT}/${params.ENVIRONMENT}"
+    REPO_URL = 'https://github.com/user-harshitha/dvara-infra.git'
+    BRANCH = 'main'
+    CLONE_DIR = 'dvara-infra'
     }
 
     stages {
+
+    stage('Checkout') {
+      steps {
+        git url: 'https://github.com/user-harshitha/terraform-scripts.git', branch: 'main'
+
+          withCredentials([usernamePassword(
+          credentialsId: 'git-creds',
+          usernameVariable: 'GIT_USERNAME',
+          passwordVariable: 'GIT_TOKEN'
+        )]) {
+          sh '''
+            # Remove previous if exists
+            rm -rf ${CLONE_DIR}
+
+            # Clone using embedded token (secure via withCredentials)
+            git clone -b ${BRANCH} https://${GIT_USERNAME}:${GIT_TOKEN}@github.com/user-harshitha/dvara-infra.git ${CLONE_DIR}
+          '''
+        }
+      }
+    }
 
         stage('Prepare') {
             steps {
@@ -104,10 +127,10 @@ pipeline {
                     echo "  BillableParty: ${env.BILLABLEPARTY_TG}"
                     echo "  ServerCategory: ${env.SERVERCATEGORY_TG}"
 
-                    def envPath = "../dvara-infra/dev-server-upgrade/clients/${params.CLIENT}/${params.ENVIRONMENT}"
+                    def envPath = "dvara-infra/dev-server-upgrade/clients/${params.CLIENT}/${params.ENVIRONMENT}"
             
             def result = sh(script: """
-                cd ../dvara-infra/dev-server-upgrade/clients
+                cd dvara-infra/dev-server-upgrade/clients
                 if [ -d "${params.CLIENT}/${params.ENVIRONMENT}" ]; then
                   echo "Server already upgraded"
                   exit 1
@@ -123,13 +146,6 @@ pipeline {
                 }
             }
         }
-
-
-    stage('Checkout') {
-      steps {
-        git url: 'https://github.com/user-harshitha/terraform-scripts.git', branch: 'main'
-      }
-    }
 
 stage('Generate tfvars and Copy Terraform scripts') {
   steps {
