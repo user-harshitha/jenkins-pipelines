@@ -175,6 +175,7 @@ dir(env.ENV_PATH) {
 
         // Fetch latest repo
         sh """
+          ls -la
           # Set Git user config
           git config user.email "harshithas22@gmail.com"
           git config user.name "user-harshitha"
