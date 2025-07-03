@@ -1,0 +1,327 @@
+pipeline {
+    agent any
+
+    parameters {
+        choice(
+            name: 'CLIENT',
+            choices: ['arohan', 'ambit', 'cp', 'credent', 'demo', 'demo2019', 'develop', 'dvaraeregistry', 'finreach', 'gtp', 'indifi', 'kgfs', 'kgfs-liabilities', 'kinara', 'kissandhan', 'liquidityplatform', 'maitreya', 'mas', 'nafa', 'navadhan', 'newdemo', 'northernarc', 'samasta', 'samastalp', 'shramsarathi', 'smhfc', 'spicemoney'],
+            description: 'Select the client'
+        )
+        
+        choice(
+            name: 'ENVIRONMENT',
+            choices: ['uat', 'sit', 'mig', 'preprod', 'produat', 'demo'],
+            description: 'Select the environment'
+        )
+        
+        string(
+            name: 'HOSTNAME',
+            description: 'Enter the hostname'
+        )
+        
+        string(
+            name: 'PERDIX_URL',
+            description: 'Enter the Perdix URL'
+        )
+        
+        // Infrastructure related inputs
+        string(
+            name: 'EXISTING_SERVER_INSTANCE_ID',
+            description: 'Enter existing server instance ID'
+        )
+        
+        string(
+            name: 'APP_VOLUME_ID',
+            description: 'Enter App Volume ID'
+        )
+        
+        string(
+            name: 'APPDATA_VOLUME_ID',
+            description: 'Enter AppData Volume ID'
+        )
+        
+        string(
+            name: 'DATABASE_VOLUME_ID',
+            description: 'Enter Database Volume ID'
+        )
+        
+        // Instance Tags
+        string(
+            name: 'TAG_NAME',
+            description: 'Instance Name tag'
+        )
+        
+    }
+
+    environment {
+    ENV_PATH = "dvara-infra/dev-server-upgrade/clients/${params.CLIENT}/${params.ENVIRONMENT}"
+    REPO_URL = 'https://github.com/user-harshitha/dvara-infra.git'
+    BRANCH = 'main'
+    CLONE_DIR = 'dvara-infra'
+    }
+
+    stages {
+
+    stage('Checkout') {
+      steps {
+        git url: 'https://github.com/user-harshitha/terraform-scripts.git', branch: 'main'
+
+          withCredentials([usernamePassword(
+          credentialsId: 'git-creds',
+          usernameVariable: 'GIT_USERNAME',
+          passwordVariable: 'GIT_TOKEN'
+        )]) {
+          sh '''
+            # Remove previous if exists
+            rm -rf ${CLONE_DIR}
+
+            # Clone using embedded token (secure via withCredentials)
+            git clone -b ${BRANCH} https://${GIT_USERNAME}:${GIT_TOKEN}@github.com/user-harshitha/dvara-infra.git ${CLONE_DIR}
+          '''
+        }
+      }
+    }
+
+        stage('Prepare') {
+            steps {
+                script {
+                    // Setup Environmental variables
+                    env.AMI_ID                      = "ami-04d143d89e43ce7fb"   
+                    env.EXISTING_SERVER_INSTANCE_ID = params.EXISTING_SERVER_INSTANCE_ID      // Ubuntu 22.04 AMI
+                    env.VPC_ID                      = "vpc-0f6424f35dc01cb6c"
+                    env.SUBNET_ID                   = "subnet-09ffb189d6f69530a"
+                    env.KEY_PAIR                    = "ansible"
+                    env.AVAILABILITY_ZONE           = "ap-south-1a"
+                    env.ENVIRONMENT                 = params.ENVIRONMENT
+                    env.HOSTNAME                    = params.HOSTNAME
+                    env.VOLUME_ID_APP               = params.APP_VOLUME_ID
+                    env.VOLUME_ID_APPDATA           = params.APPDATA_VOLUME_ID
+                    env.VOLUME_ID_DATABASE          = params.DATABASE_VOLUME_ID
+                    env.ROUTE53_ZONE_ID             = "Z14HUFX62W338H"
+                    env.LISTENER_ARN                = "arn:aws:elasticloadbalancing:ap-south-1:203862109330:listener/app/DEV-MMB-ELB/617d6a7924757988/3c6ee87c6cfc2be5"
+                    env.PERDIX_URL                  = params.PERDIX_URL
+                    env.NAME_TG                     = params.TAG_NAME
+                    env.BILLABLEPARTY_TG            = params.CLIENT
+                    env.DNS_NAME                    = params.HOSTNAME
+                    if (params.ENVIRONMENT == 'sit') {
+                        env.SERVERCATEGORY_TG = "Client-SIT"
+                    } else {
+                        env.SERVERCATEGORY_TG = "Client-UAT"
+                    }
+
+
+                    // Display all input parameters
+                    echo "AMI-ID: ${env.AMI_ID}"
+                    echo "EXISTING_SERVER_INSTANCE_ID: ${env.EXISTING_SERVER_INSTANCE_ID}"
+                    echo "Client: ${params.CLIENT}"
+                    echo "Environment: ${params.ENVIRONMENT}"
+                    echo "Hostname: ${params.HOSTNAME}"
+                    echo "Perdix URL: ${params.PERDIX_URL}"
+                    echo "File Storage: ${params.STORAGE_TYPE}"
+                    echo "Existing Server Instance ID: ${params.EXISTING_SERVER_INSTANCE_ID}"
+                    echo "App Volume ID: ${params.APP_VOLUME_ID}"
+                    echo "AppData Volume ID: ${params.APPDATA_VOLUME_ID}"
+                    echo "Database Volume ID: ${params.DATABASE_VOLUME_ID}"
+                    echo "Instance Tags:"
+                    echo "  Name: ${params.TAG_NAME}"
+                    echo "  BillableParty: ${env.BILLABLEPARTY_TG}"
+                    echo "  ServerCategory: ${env.SERVERCATEGORY_TG}"
+
+                    def envPath = "dvara-infra/dev-server-upgrade/clients/${params.CLIENT}/${params.ENVIRONMENT}"
+            
+            def result = sh(script: """
+                cd dvara-infra/dev-server-upgrade/clients
+                if [ -d "${params.CLIENT}/${params.ENVIRONMENT}" ]; then
+                  echo "Server already upgraded"
+                  exit 1
+                else
+                  mkdir -p ${params.CLIENT}/${params.ENVIRONMENT}
+                fi
+            """, returnStatus: true)
+
+            if (result != 0) {
+                error("Server already upgraded. Exiting pipeline.")
+            }
+
+                }
+            }
+        }
+
+stage('Generate tfvars and Copy Terraform scripts') {
+  steps {
+    script {
+      def tfvarsContent = """
+ami_id                    = "${env.AMI_ID}"
+existing_server_instance_id = "${env.EXISTING_SERVER_INSTANCE_ID}"
+subnet_id                 = "${env.SUBNET_ID}"
+key_pair                  = "${env.KEY_PAIR}"
+env                       = "${env.ENVIRONMENT}"
+availability_zone         = "${env.AVAILABILITY_ZONE}"
+base_volume_id_app        = "${env.VOLUME_ID_APP}"
+base_volume_id_appdata    = "${env.VOLUME_ID_APPDATA}"
+base_volume_id_database   = "${env.VOLUME_ID_DATABASE}"
+hostname                  = "${env.HOSTNAME}"
+route53_zone_id           = "${env.ROUTE53_ZONE_ID}"
+perdix_url                = "${env.PERDIX_URL}"
+vpc_id                    = "${env.VPC_ID}"
+alb_https_listener_arn    = "${env.LISTENER_ARN}"
+
+ebs_volume_tags = {
+  Name           = "${env.NAME_TG}"
+  BillableParty  = "${env.BILLABLEPARTY_TG}"
+}
+
+instance_tags = {
+  Name           = "${env.NAME_TG}"
+  BillableParty  = "${env.BILLABLEPARTY_TG}"
+  ServerCategory = "${env.SERVERCATEGORY_TG}"
+  DNS_Name       = "${env.DNS_NAME}"
+}
+"""
+
+      // Log for verification
+      echo "Generated terraform.tfvars content:\n${tfvarsContent}"
+
+dir(env.ENV_PATH) {
+        withCredentials([usernamePassword(
+        credentialsId: 'git-creds',
+        usernameVariable: 'GIT_USERNAME',
+        passwordVariable: 'GIT_TOKEN'
+      )]) {
+
+        // Fetch latest repo
+        sh """
+          ls -la
+          # Set Git user config
+          git config user.email "harshithas22@gmail.com"
+          git config user.name "user-harshitha"
+
+          git remote set-url origin https://${GIT_USERNAME}:${GIT_TOKEN}@github.com/user-harshitha/dvara-infra.git
+          git pull origin main
+        """
+      }
+                // Write the tfvars file here
+                writeFile file: 'terraform.tfvars', text: tfvarsContent
+
+                // Debug directory path
+                sh '''
+                echo "Current working directory inside ENV_PATH:"
+                pwd
+                ls -la
+                '''
+
+                // Define source and copy files from sourceDir to current dir
+                def sourceDir = "/var/jenkins_home/workspace/dev-server-upgrade/Server_Upgrade/dev"
+                
+                sh """
+                echo "Copying Terraform scripts..."
+                cp -r ${sourceDir}/* .
+                echo "After copying:"
+                ls -la
+                """
+            }
+
+    }
+  }
+}
+
+    stage('Setup AWS Credentials and Validate Terraform') {
+      steps {
+        script {
+            dir(env.ENV_PATH){
+            withCredentials([usernamePassword(
+            credentialsId: 'aws-creds',
+            usernameVariable: 'AWS_ACCESS_KEY_ID',
+            passwordVariable: 'AWS_SECRET_ACCESS_KEY'
+            )]) {
+            sh """
+            echo "Current directory: \$(pwd)"
+            ls -la
+
+            export AWS_ACCESS_KEY_ID=${env.AWS_ACCESS_KEY_ID}
+            export AWS_SECRET_ACCESS_KEY=${env.AWS_SECRET_ACCESS_KEY}
+
+            terraform init
+            terraform validate
+            terraform plan -var-file="terraform.tfvars"
+          """
+            }
+            }
+        }
+        
+      }
+    }
+    
+
+stage('Terraform Apply & ALB Update') {
+  steps {
+    script {
+      dir(env.ENV_PATH) {
+
+        input message: 'Apply Terraform changes?'
+
+        withCredentials([usernamePassword(credentialsId: 'aws-creds', usernameVariable: 'AWS_ACCESS_KEY_ID', passwordVariable: 'AWS_SECRET_ACCESS_KEY')]) {
+
+          withEnv(["AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID", 
+                   "AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY", 
+                   "AWS_DEFAULT_REGION=ap-south-1"]) {
+
+            sh '''
+              terraform apply -auto-approve -var-file="terraform.tfvars"
+              terraform output -json > tf_outputs.json
+            '''
+
+            def tfOutputs = readJSON file: 'tf_outputs.json'
+            def tgArn = tfOutputs.target_group_info.value.arn
+
+            // Call Python script with values
+            sh """
+              /opt/venv/bin/python modify_alb_rule.py \
+                --listener-arn "${env.LISTENER_ARN}" \
+                --host-header "${env.PERDIX_URL}" \
+                --target-group-arn "${tgArn}"
+            """
+          }
+        }
+      }
+    }
+  }
+}
+
+stage('Commit Terraform State') {
+  steps {
+    script {
+        dir(env.ENV_PATH){
+        withCredentials([usernamePassword(
+        credentialsId: 'git-creds',
+        usernameVariable: 'GIT_USERNAME',
+        passwordVariable: 'GIT_TOKEN'
+      )]) {
+
+        // Clone repo, copy state, commit and push
+        sh """
+          # Set Git user config
+          git config user.email "harshithas22@gmail.com"
+          git config user.name "user-harshitha"
+
+          git remote set-url origin https://${GIT_USERNAME}:${GIT_TOKEN}@github.com/user-harshitha/dvara-infra.git
+          git status
+          git add terraform.tfstate terraform.tfvars tf_outputs.json main.tf setup.sh
+          git commit -m "Update state for ${params.ENVIRONMENT}-${params.CLIENT}"
+          git push origin main
+        """
+      }
+        }
+ 
+    }
+  }
+}               
+
+   // post {
+       // always {
+        //    cleanWs()
+      //  }
+    //}
+}
+
+}
