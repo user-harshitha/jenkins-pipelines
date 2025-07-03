@@ -54,7 +54,7 @@ pipeline {
     }
 
     environment {
-    ENV_PATH = "environments/${params.ENVIRONMENT}/${params.CLIENT}"
+    ENV_PATH = "clients/${params.CLIENT}/${params.ENVIRONMENT}"
     }
 
     stages {
@@ -104,10 +104,10 @@ pipeline {
                     echo "  BillableParty: ${env.BILLABLEPARTY_TG}"
                     echo "  ServerCategory: ${env.SERVERCATEGORY_TG}"
 
-                    def envPath = "environments/${params.ENVIRONMENT}/${params.CLIENT}"
+                    def envPath = "clients/${params.ENVIRONMENT}/${params.CLIENT}"
             
             def result = sh(script: """
-                cd environments
+                cd clients
                 if [ -d "${params.ENVIRONMENT}/${params.CLIENT}" ]; then
                   echo "Server already upgraded"
                   exit 1
