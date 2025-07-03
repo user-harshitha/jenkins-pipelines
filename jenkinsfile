@@ -131,7 +131,7 @@ pipeline {
       }
     }
 
-    stage('Generate tfvars and Copy Terraform scripts') {
+stage('Generate tfvars and Copy Terraform scripts') {
   steps {
     script {
       def tfvarsContent = """
@@ -167,7 +167,7 @@ instance_tags = {
       echo "Generated terraform.tfvars content:\n${tfvarsContent}"
 
 dir(env.ENV_PATH) {
-            withCredentials([usernamePassword(
+        withCredentials([usernamePassword(
         credentialsId: 'git-creds',
         usernameVariable: 'GIT_USERNAME',
         passwordVariable: 'GIT_TOKEN'
@@ -305,4 +305,6 @@ stage('Commit Terraform State') {
         //    cleanWs()
       //  }
     //}
+}
+
 }
