@@ -160,7 +160,7 @@ pipeline {
             def result = sh(script: """
                 cd dvara-infra/dev-server-creation/clients
                 if [ -d "${env.CLIENT}/${env.ENVIRONMENT}" ]; then
-                  echo "Server already upgraded"
+                  echo "Server already present"
                   exit 1
                 else
                   mkdir -p ${env.CLIENT}/${env.ENVIRONMENT}
@@ -168,7 +168,7 @@ pipeline {
             """, returnStatus: true)
 
             if (result != 0) {
-                error("Server already upgraded. Exiting pipeline.")
+                error("Server already present. Exiting pipeline.")
             }
 
                 }
