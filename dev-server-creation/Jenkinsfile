@@ -2,21 +2,43 @@ pipeline {
     agent any
 
     parameters {
+
         choice(
-            name: 'CLIENT',
+            name: 'BASE_CLIENT',
             choices: ['arohan', 'ambit', 'cp', 'credent', 'demo', 'demo2019', 'develop', 'dvaraeregistry', 'finreach', 'gtp', 'indifi', 'kgfs', 'kgfs-liabilities', 'kinara', 'kissandhan', 'liquidityplatform', 'maitreya', 'mas', 'nafa', 'navadhan', 'newdemo', 'northernarc', 'samasta', 'samastalp', 'shramsarathi', 'smhfc', 'spicemoney'],
-            description: 'Select the client'
+            description: 'Select the base client'
+        )
+
+        choice(
+            name: 'BASE_ENVIRONMENT',
+            choices: ['uat', 'sit', 'mig', 'preprod', 'produat', 'demo'],
+            description: 'Select the base environment'
+        )
+
+        string(
+            name: 'NEW_CLIENT',
+            description: 'Enter the new client code in small case'
         )
         
         choice(
-            name: 'ENVIRONMENT',
+            name: 'NEW_ENVIRONMENT',
             choices: ['uat', 'sit', 'mig', 'preprod', 'produat', 'demo'],
-            description: 'Select the environment'
+            description: 'Select the new environment'
         )
         
         string(
-            name: 'HOSTNAME',
+            name: 'BASE_SERVER_HOSTNAME',
             description: 'Enter the hostname'
+        )
+
+        string(
+            name: 'NEW_SERVER_HOSTNAME',
+            description: 'Enter the hostname'
+        )
+
+        string(
+            name: 'BASE_SERVER_URL',
+            description: 'Enter the Perdix URL'
         )
         
         string(
@@ -26,7 +48,7 @@ pipeline {
         
         // Infrastructure related inputs
         string(
-            name: 'EXISTING_SERVER_INSTANCE_ID',
+            name: 'BASE_SERVER_INSTANCE_ID',
             description: 'Enter existing server instance ID'
         )
         
@@ -50,11 +72,16 @@ pipeline {
             name: 'TAG_NAME',
             description: 'Instance Name tag'
         )
+
+        string(
+            name: 'TAG_BILLABLEPARTY',
+            description: 'Enter the Billable Party Tag'
+        )
         
     }
 
     environment {
-    ENV_PATH = "dvara-infra/dev-server-upgrade/clients/${params.CLIENT}/${params.ENVIRONMENT}"
+    ENV_PATH = "dvara-infra/dev-server-creation/clients/${env.CLIENT}/${env.ENVIRONMENT}"
     REPO_URL = 'https://github.com/user-harshitha/dvara-infra.git'
     BRANCH = 'main'
     CLONE_DIR = 'dvara-infra'
@@ -92,8 +119,9 @@ pipeline {
                     env.SUBNET_ID                   = "subnet-09ffb189d6f69530a"
                     env.KEY_PAIR                    = "ansible"
                     env.AVAILABILITY_ZONE           = "ap-south-1a"
-                    env.ENVIRONMENT                 = params.ENVIRONMENT
-                    env.HOSTNAME                    = params.HOSTNAME
+                    env.CLIENT                      = params.NEW_CLIENT
+                    env.ENVIRONMENT                 = params.NEW_ENVIRONMENT
+                    env.HOSTNAME                    = params.NEW_SERVER_HOSTNAME
                     env.VOLUME_ID_APP               = params.APP_VOLUME_ID
                     env.VOLUME_ID_APPDATA           = params.APPDATA_VOLUME_ID
                     env.VOLUME_ID_DATABASE          = params.DATABASE_VOLUME_ID
@@ -101,9 +129,9 @@ pipeline {
                     env.LISTENER_ARN                = "arn:aws:elasticloadbalancing:ap-south-1:203862109330:listener/app/DEV-MMB-ELB/617d6a7924757988/3c6ee87c6cfc2be5"
                     env.PERDIX_URL                  = params.PERDIX_URL
                     env.NAME_TG                     = params.TAG_NAME
-                    env.BILLABLEPARTY_TG            = params.CLIENT
-                    env.DNS_NAME                    = params.HOSTNAME
-                    if (params.ENVIRONMENT == 'sit') {
+                    env.BILLABLEPARTY_TG            = params.TAG_BILLABLEPARTY
+                    env.DNS_NAME                    = params.NEW_SERVER_HOSTNAME
+                    if (env.ENVIRONMENT == 'sit') {
                         env.SERVERCATEGORY_TG = "Client-SIT"
                     } else {
                         env.SERVERCATEGORY_TG = "Client-UAT"
@@ -113,9 +141,9 @@ pipeline {
                     // Display all input parameters
                     echo "AMI-ID: ${env.AMI_ID}"
                     echo "EXISTING_SERVER_INSTANCE_ID: ${env.EXISTING_SERVER_INSTANCE_ID}"
-                    echo "Client: ${params.CLIENT}"
-                    echo "Environment: ${params.ENVIRONMENT}"
-                    echo "Hostname: ${params.HOSTNAME}"
+                    echo "Client: ${env.CLIENT}"
+                    echo "Environment: ${env.ENVIRONMENT}"
+                    echo "Hostname: ${params.NEW_SERVER_HOSTNAME}"
                     echo "Perdix URL: ${params.PERDIX_URL}"
                     echo "File Storage: ${params.STORAGE_TYPE}"
                     echo "Existing Server Instance ID: ${params.EXISTING_SERVER_INSTANCE_ID}"
@@ -127,15 +155,15 @@ pipeline {
                     echo "  BillableParty: ${env.BILLABLEPARTY_TG}"
                     echo "  ServerCategory: ${env.SERVERCATEGORY_TG}"
 
-                    def envPath = "dvara-infra/dev-server-upgrade/clients/${params.CLIENT}/${params.ENVIRONMENT}"
+                    def envPath = "dvara-infra/dev-server-creation/clients/${env.CLIENT}/${env.ENVIRONMENT}"
             
             def result = sh(script: """
-                cd dvara-infra/dev-server-upgrade/clients
-                if [ -d "${params.CLIENT}/${params.ENVIRONMENT}" ]; then
+                cd dvara-infra/dev-server-creation/clients
+                if [ -d "${env.CLIENT}/${env.ENVIRONMENT}" ]; then
                   echo "Server already upgraded"
                   exit 1
                 else
-                  mkdir -p ${params.CLIENT}/${params.ENVIRONMENT}
+                  mkdir -p ${env.CLIENT}/${env.ENVIRONMENT}
                 fi
             """, returnStatus: true)
 
@@ -152,9 +180,10 @@ stage('Generate tfvars and Copy Terraform scripts') {
     script {
       def tfvarsContent = """
 ami_id                    = "${env.AMI_ID}"
-existing_server_instance_id = "${env.EXISTING_SERVER_INSTANCE_ID}"
+base_server_instance_id = "${env.BASE_SERVER_INSTANCE_ID}"
 subnet_id                 = "${env.SUBNET_ID}"
 key_pair                  = "${env.KEY_PAIR}"
+client                    = "${env.CLIENT}"
 env                       = "${env.ENVIRONMENT}"
 availability_zone         = "${env.AVAILABILITY_ZONE}"
 base_volume_id_app        = "${env.VOLUME_ID_APP}"
@@ -211,7 +240,7 @@ dir(env.ENV_PATH) {
                 '''
 
                 // Define source and copy files from sourceDir to current dir
-                def sourceDir = "/var/jenkins_home/workspace/dev-server-upgrade/Server_Upgrade/dev"
+                def sourceDir = "/var/jenkins_home/workspace/dev-server-upgrade/Server_Creation/dev"
                 
                 sh """
                 echo "Copying Terraform scripts..."
@@ -273,14 +302,6 @@ stage('Terraform Apply & ALB Update') {
 
             def tfOutputs = readJSON file: 'tf_outputs.json'
             def tgArn = tfOutputs.target_group_info.value.arn
-
-            // Call Python script with values
-            sh """
-              /opt/venv/bin/python modify_alb_rule.py \
-                --listener-arn "${env.LISTENER_ARN}" \
-                --host-header "${env.PERDIX_URL}" \
-                --target-group-arn "${tgArn}"
-            """
           }
         }
       }
@@ -307,7 +328,7 @@ stage('Commit Terraform State') {
           git remote set-url origin https://${GIT_USERNAME}:${GIT_TOKEN}@github.com/user-harshitha/dvara-infra.git
           git status
           git add terraform.tfstate terraform.tfvars tf_outputs.json main.tf setup.sh
-          git commit -m "Update state for ${params.ENVIRONMENT}-${params.CLIENT}"
+          git commit -m "Update state for ${env.ENVIRONMENT}-${env.CLIENT}"
           git push origin main
         """
       }
@@ -315,7 +336,32 @@ stage('Commit Terraform State') {
  
     }
   }
-}               
+}       
+
+    stages {
+        stage('Commit folders for new client in jenkins git repo') {
+            steps {
+              dir(env.ENV_PATH){
+                withCredentials([usernamePassword(credentialsId: 'gitea-creds', usernameVariable: 'GIT_USERNMAE', passwordVariable: 'GIT_TOKEN')]) {
+                    sh '''
+                        python3 git-automation.py \
+                            --username ${GIT_USERNAME} \
+                            --token ${GIT_TOKEN} \
+                            --base-client ${params.BASE_CLIENT} \
+                            --base-env ${params.BASE_ENVIRONMENT} \
+                            --new-client ${params.NEW_CLIENT} \
+                            --new-env ${params.NEW_ENVIRONMENT} \
+                            --old-hostname ${params.BASE_SERVER_HOSTNAME} \
+                            --new-hostname ${params.NEW_SERVER_HOSTNAME} \
+                            --old-url ${params.BASE_SERVER_URL} \
+                            --new-url ${params.PERDIX_URL}
+                    '''
+                }
+              }
+            }
+        }
+    }
+
 
    // post {
        // always {
