@@ -81,7 +81,7 @@ pipeline {
     }
 
     environment {
-    ENV_PATH = "dvara-infra/dev-server-creation/clients/${env.CLIENT}/${env.ENVIRONMENT}"
+    ENV_PATH = "dvara-infra/dev-server-creation/clients/${params.NEW_CLIENT}/${params.NEW_ENVIRONMENT}"
     REPO_URL = 'https://github.com/user-harshitha/dvara-infra.git'
     BRANCH = 'main'
     CLONE_DIR = 'dvara-infra'
@@ -281,7 +281,7 @@ dir(env.ENV_PATH) {
     }
     
 
-stage('Terraform Apply & ALB Update') {
+stage('Terraform Apply') {
   steps {
     script {
       dir(env.ENV_PATH) {
