@@ -352,7 +352,8 @@ stage('Commit Terraform State') {
                             --old-hostname ${params.BASE_SERVER_HOSTNAME} \
                             --new-hostname ${params.NEW_SERVER_HOSTNAME} \
                             --old-url ${params.BASE_SERVER_URL} \
-                            --new-url ${params.PERDIX_URL}
+                            --new-url ${params.PERDIX_URL} \
+                            --workspace_dir ${env.ENV.PATH}
                     '''
                 }
               }
