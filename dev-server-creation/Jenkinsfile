@@ -338,7 +338,6 @@ stage('Commit Terraform State') {
   }
 }       
 
-    stages {
         stage('Commit folders for new client in jenkins git repo') {
             steps {
               dir(env.ENV_PATH){
@@ -359,8 +358,7 @@ stage('Commit Terraform State') {
                 }
               }
             }
-        }
-    }
+         }
 
 
    // post {
