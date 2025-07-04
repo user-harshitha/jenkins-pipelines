@@ -240,8 +240,7 @@ dir(env.ENV_PATH) {
                 '''
 
                 // Define source and copy files from sourceDir to current dir
-                def sourceDir = "/var/jenkins_home/workspace/dev-server-upgrade/Server_Creation/dev"
-                
+                def sourceDir = "/var/jenkins_home/workspace/dev-server-creation/Server_Creation/dev"
                 sh """
                 echo "Copying Terraform scripts..."
                 cp -r ${sourceDir}/* .
