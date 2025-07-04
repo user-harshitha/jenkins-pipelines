@@ -342,6 +342,7 @@ stage('Commit Terraform State') {
               dir(env.ENV_PATH){
                 withCredentials([usernamePassword(credentialsId: 'gitea-creds', usernameVariable: 'GIT_USERNMAE', passwordVariable: 'GIT_TOKEN')]) {
                     sh '''
+                        #!/bin/bash
                         python3 git-automation.py \
                             --username ${GIT_USERNAME} \
                             --token ${GIT_TOKEN} \
