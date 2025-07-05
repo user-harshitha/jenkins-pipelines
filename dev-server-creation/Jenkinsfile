@@ -81,7 +81,28 @@ pipeline {
     }
 
     environment {
-    ENV_PATH = "./"
+    ENV_PATH = "./Server_Creation/dev/"
+    }
+    stages {
+
+    stage('Checkout') {
+      steps {
+        git url: 'https://github.com/user-harshitha/terraform-scripts.git', branch: 'main'
+
+          withCredentials([usernamePassword(
+          credentialsId: 'git-creds',
+          usernameVariable: 'GIT_USERNAME',
+          passwordVariable: 'GIT_TOKEN'
+        )]) {
+          sh '''
+            # Remove previous if exists
+            rm -rf ${CLONE_DIR}
+
+            # Clone using embedded token (secure via withCredentials)
+            git clone -b ${BRANCH} https://${GIT_USERNAME}:${GIT_TOKEN}@github.com/user-harshitha/dvara-infra.git ${CLONE_DIR}
+          '''
+        }
+      }
     }
 
     stages {
