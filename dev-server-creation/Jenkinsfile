@@ -138,7 +138,6 @@ pipeline {
 
         stage('Commit folders for new client in jenkins git repo') {
             steps {
-              script {
               dir(env.ENV_PATH){
 withCredentials([usernamePassword(credentialsId: 'gitea-creds', usernameVariable: 'GIT_USERNAME', passwordVariable: 'GIT_TOKEN')]) {
   sh (
@@ -159,7 +158,6 @@ withCredentials([usernamePassword(credentialsId: 'gitea-creds', usernameVariable
     shell: '/bin/bash'
   )
 }
-              }
               }
             }
          }
