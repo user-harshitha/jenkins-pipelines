@@ -140,23 +140,25 @@ pipeline {
             steps {
               script {
               dir(env.ENV_PATH){
-                withCredentials([usernamePassword(credentialsId: 'gitea-creds', usernameVariable: 'GIT_USERNMAE', passwordVariable: 'GIT_TOKEN')]) {
-                    sh '''
-                        #!/bin/bash
-                        python3 git-automation.py \
-                            --username ${GIT_USERNAME} \
-                            --token ${GIT_TOKEN} \
-                            --base-client ${params.BASE_CLIENT} \
-                            --base-env ${params.BASE_ENVIRONMENT} \
-                            --new-client ${params.NEW_CLIENT} \
-                            --new-env ${params.NEW_ENVIRONMENT} \
-                            --old-hostname ${params.BASE_SERVER_HOSTNAME} \
-                            --new-hostname ${params.NEW_SERVER_HOSTNAME} \
-                            --old-url ${params.BASE_SERVER_URL} \
-                            --new-url ${params.PERDIX_URL} \
-                            --workspace_dir ${env.ENV.PATH}
-                    '''
-                }
+withCredentials([usernamePassword(credentialsId: 'gitea-creds', usernameVariable: 'GIT_USERNAME', passwordVariable: 'GIT_TOKEN')]) {
+  sh (
+    script: """
+      python3 git-automation.py \
+        --username ${GIT_USERNAME} \
+        --token ${GIT_TOKEN} \
+        --base-client ${params.BASE_CLIENT} \
+        --base-env ${params.BASE_ENVIRONMENT} \
+        --new-client ${params.NEW_CLIENT} \
+        --new-env ${params.NEW_ENVIRONMENT} \
+        --old-hostname ${params.BASE_SERVER_HOSTNAME} \
+        --new-hostname ${params.NEW_SERVER_HOSTNAME} \
+        --old-url ${params.BASE_SERVER_URL} \
+        --new-url ${params.PERDIX_URL} \
+        --workspace_dir ${env.ENV_PATH}
+    """,
+    shell: '/bin/bash'
+  )
+}
               }
               }
             }
