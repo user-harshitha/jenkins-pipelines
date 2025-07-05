@@ -146,12 +146,12 @@ pipeline {
             steps {
               script{
               dir(env.ENV_PATH){
-withCredentials([usernamePassword(credentialsId: 'gitea-creds', usernameVariable: 'GIT_USERNAME', passwordVariable: 'GIT_TOKEN')]) {
+withCredentials([usernamePassword(credentialsId: 'gitea-creds', usernameVariable: 'GITEA_USERNAME', passwordVariable: 'GITEA_TOKEN')]) {
   sh (
     script: """
       python3 git-automation.py \
-        --username ${GIT_USERNAME} \
-        --token ${GIT_TOKEN} \
+        --username ${GITEA_USERNAME} \
+        --token ${GITEA_TOKEN} \
         --base-client ${params.BASE_CLIENT} \
         --base-env ${params.BASE_ENVIRONMENT} \
         --new-client ${params.NEW_CLIENT} \
