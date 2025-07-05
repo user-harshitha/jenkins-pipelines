@@ -83,8 +83,10 @@ pipeline {
     environment {
     ENV_PATH = "./Server_Creation/dev/"
     }
-    stages {
 
+
+
+    stages {
     stage('Checkout') {
       steps {
         git url: 'https://github.com/user-harshitha/terraform-scripts.git', branch: 'main'
@@ -104,9 +106,6 @@ pipeline {
         }
       }
     }
-
-    stages {
-
         stage('Prepare') {
             steps {
                 script {
