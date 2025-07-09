@@ -3,7 +3,11 @@ pipeline {
 
     parameters {
 
-        
+        string(
+            name: 'HOSTNAME',
+            description: 'Enter the hostname'
+        )
+
         // Task checkboxes
         booleanParam(
             name: 'SETUP_HOSTNAME',
@@ -90,11 +94,7 @@ pipeline {
 
                     // Common extra vars for all playbooks
                     def commonExtraVars = [
-                        vpc_id: env.VPC_ID,
-                        subnet_id: env.SUBNET_ID,
-                        tag_name: params.TAG_NAME,
-                        tag_billable_party: params.TAG_BILLABLE_PARTY,
-                        tag_server_category: params.TAG_SERVER_CATEGORY
+                        hostname: params.HOSTNAME
                     ]
 
                     // Run playbooks based on selected tasks
@@ -104,8 +104,7 @@ pipeline {
                             playbook: 'playbooks/setup_hostname.yml',
                             inventory: 'inventory.ini',
                             extraVars: commonExtraVars + [
-                                hostname: params.HOSTNAME,
-                                environment: params.ENVIRONMENT
+                                hostname: params.HOSTNAME
                             ]
                         )
                     }
@@ -115,9 +114,7 @@ pipeline {
                             playbook: 'playbooks/containerize_services.yml',
                             inventory: 'inventory.ini',
                             extraVars: commonExtraVars + [
-                                client: params.CLIENT,
-                                perdix_url: params.PERDIX_URL,
-                                file_storage: params.STORAGE_TYPE
+                                hostname: params.HOSTNAME
                             ]
                         )
                     }
@@ -128,13 +125,21 @@ pipeline {
                         message: 'Teleport installation selected. Please enter JOIN_TOKEN:',
                         parameters: [string(name: 'JOIN_TOKEN', description: 'Teleport join token')]
                         )
+                        def clientInput = input(
+                        message: 'Teleport installation selected. Please enter Client:',
+                        parameters: [string(name: 'CLIENT', description: 'Client')]
+                        )
+                        def environmentInput = input(
+                        message: 'Teleport installation selected. Please enter Environment:',
+                        parameters: [string(name: 'ENVIRONMENT', description: 'Environment')]
+                        )
                         ansiblePlaybook(
                             playbook: 'playbooks/install_teleport.yml',
                             inventory: 'inventory.ini',
                             extraVars: commonExtraVars + [
-                                join_token: params.JOIN_TOKEN,
-                                env: params.ENVIRONMENT,
-                                client: params.CLIENT
+                                join_token: tokenInput,
+                                environment: environmentInput,
+                                client: clientInput
                             ]
                         )
                     }
