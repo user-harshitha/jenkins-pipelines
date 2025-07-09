@@ -60,7 +60,7 @@ pipeline {
                 withFileParameter('CRONJOB_FILE'){
                     
                     sh 'cat $CRONJOB_FILE > ansible/cronjob.txt'
-                    echo "Cronjob file saved"
+                    echo "Cronjob file saved1"
                     }
 
                     sh 'echo $CRONJOB_FILE | base64 -d'
@@ -78,7 +78,7 @@ pipeline {
                     // Save uploaded cronjob file if provided
                     if (params.SETUP_CRONJOB && params.CRONJOB_FILE) {
                         writeFile file: 'ansible/cronjob_file', text: params.CRONJOB_FILE.readToString()
-                        echo "Cronjob file saved"
+                        echo "Cronjob file saved2"
                     }
                 }
             }

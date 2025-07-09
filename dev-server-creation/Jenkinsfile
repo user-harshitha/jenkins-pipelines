@@ -326,7 +326,7 @@ stage('Commit Terraform State') {
 
           git remote set-url origin https://${GIT_USERNAME}:${GIT_TOKEN}@github.com/user-harshitha/dvara-infra.git
           git status
-          git add terraform.tfstate terraform.tfvars tf_outputs.json main.tf setup.sh .terraform*
+          git add terraform.tfstate terraform.tfvars tf_outputs.json main.tf setup.sh 
           git commit -m "Update state for ${env.ENVIRONMENT}-${env.CLIENT}"
           git push origin main
         """
