@@ -1,0 +1,170 @@
+pipeline {
+    agent any
+
+    parameters {
+
+        
+        // Task checkboxes
+        booleanParam(
+            name: 'SETUP_HOSTNAME',
+            description: 'Setup hostname'
+        )
+        
+        booleanParam(
+            name: 'CONTAINERIZE_SERVICES',
+            description: 'Containerize services'
+        )
+        
+        booleanParam(
+            name: 'INSTALL_TELEPORT',
+            description: 'Install Teleport'
+        )
+        
+        booleanParam(
+            name: 'SETUP_LOGROTATION',
+            description: 'Setup logrotation'
+        )
+        
+        booleanParam(
+            name: 'SETUP_CRONJOB',
+            description: 'Setup cronjob'
+        )
+        
+        base64File description: 'Upload the cronjob file', name: 'CRONJOB_FILE'
+
+    }
+
+    stages {
+
+    stage('Checkout') {
+      steps {
+        git url: 'https://github.com/user-harshitha/ansible-playbooks.git', branch: 'main'
+      }
+    }
+
+        stage('Prepare') {
+            steps {
+                script {
+                    // Setup Environmental variables
+                    env.ENVIRONMENT                 = params.ENVIRONMENT
+                    env.HOSTNAME                    = params.HOSTNAME
+                    env.CLIENT                      = params.CLIENT
+                    echo "Client: ${params.CLIENT}"
+                    echo "Environment: ${params.ENVIRONMENT}"
+                    echo "Hostname: ${params.HOSTNAME}"
+
+                withFileParameter('CRONJOB_FILE'){
+                    
+                    sh 'cat $CRONJOB_FILE > ansible/cronjob.txt'
+                    echo "Cronjob file saved"
+                    }
+
+                    sh 'echo $CRONJOB_FILE | base64 -d'
+                    if (params.SETUP_CRONJOB && params.CRONJOB_FILE) {
+                       // sh "mkdir -p /var/jenkins_home/workspace/dvara-infra/server-upgrade/dev"
+                      //  withFileParameter('CRONJOB_FILE'){
+                      //  sh 'cat $CRONJOB_FILE > /var/jenkins_home/workspace/dvara-infra/server-upgrade/dev/cronjob.txt'
+                      //  echo "Cronjob file saved"
+                      //  }
+
+                    } else {
+                        echo "Cronjob setup not requested or no file uploaded"
+                    }
+
+                    // Save uploaded cronjob file if provided
+                    if (params.SETUP_CRONJOB && params.CRONJOB_FILE) {
+                        writeFile file: 'ansible/cronjob_file', text: params.CRONJOB_FILE.readToString()
+                        echo "Cronjob file saved"
+                    }
+                }
+            }
+        }
+
+
+        stage('Run Ansible Playbooks') {
+            steps {
+                script {
+                    // Create inventory file
+                    sh 'echo "[target_host]" > inventory.ini'
+                    sh "echo \"${params.HOSTNAME}\" >> inventory.ini"
+
+                    // Common extra vars for all playbooks
+                    def commonExtraVars = [
+                        vpc_id: env.VPC_ID,
+                        subnet_id: env.SUBNET_ID,
+                        tag_name: params.TAG_NAME,
+                        tag_billable_party: params.TAG_BILLABLE_PARTY,
+                        tag_server_category: params.TAG_SERVER_CATEGORY
+                    ]
+
+                    // Run playbooks based on selected tasks
+                    sshagent(credentials: ['ansible_ssh']) {
+                    if (params.SETUP_HOSTNAME) {
+                        ansiblePlaybook(
+                            playbook: 'playbooks/setup_hostname.yml',
+                            inventory: 'inventory.ini',
+                            extraVars: commonExtraVars + [
+                                hostname: params.HOSTNAME,
+                                environment: params.ENVIRONMENT
+                            ]
+                        )
+                    }
+
+                    if (params.CONTAINERIZE_SERVICES) {
+                        ansiblePlaybook(
+                            playbook: 'playbooks/containerize_services.yml',
+                            inventory: 'inventory.ini',
+                            extraVars: commonExtraVars + [
+                                client: params.CLIENT,
+                                perdix_url: params.PERDIX_URL,
+                                file_storage: params.STORAGE_TYPE
+                            ]
+                        )
+                    }
+
+                    if (params.INSTALL_TELEPORT) {
+                        // uncomment if dynamic inputs are required
+                        def tokenInput = input(
+                        message: 'Teleport installation selected. Please enter JOIN_TOKEN:',
+                        parameters: [string(name: 'JOIN_TOKEN', description: 'Teleport join token')]
+                        )
+                        ansiblePlaybook(
+                            playbook: 'playbooks/install_teleport.yml',
+                            inventory: 'inventory.ini',
+                            extraVars: commonExtraVars + [
+                                join_token: params.JOIN_TOKEN,
+                                env: params.ENVIRONMENT,
+                                client: params.CLIENT
+                            ]
+                        )
+                    }
+
+                    if (params.SETUP_LOGROTATION) {
+                        ansiblePlaybook(
+                            playbook: 'playbooks/setup_logrotation.yml',
+                            inventory: 'inventory.ini',
+                            extraVars: commonExtraVars
+                        )
+                    }
+
+                    if (params.SETUP_CRONJOB) {
+                        ansiblePlaybook(
+                            playbook: 'playbooks/setup_cronjob.yml',
+                            inventory: 'inventory.ini',
+                            extraVars: commonExtraVars + [
+                                cronjob_file: 'ansible/cronjob.txt'
+                            ]
+                        )
+                    }
+                    }
+                }
+            }
+        }
+  }
+
+   // post {
+        //always {
+           //cleanWs()
+       // }
+   //}
+}
