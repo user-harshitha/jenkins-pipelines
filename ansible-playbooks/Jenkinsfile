@@ -108,18 +108,18 @@ pipeline {
 
                     if (params.INSTALL_TELEPORT) {
                         // uncomment if dynamic inputs are required
-                        def tokenInput = input(
-                        message: 'Teleport installation selected. Please enter JOIN_TOKEN:',
-                        parameters: [string(name: 'JOIN_TOKEN', description: 'Teleport join token')]
+                        def teleportInputs = input(
+                        message: 'Teleport installation selected. Please enter the following details:',
+                        parameters: [
+                        string(name: 'JOIN_TOKEN', description: 'Teleport join token'),
+                        string(name: 'CLIENT', description: 'Client'),
+                        string(name: 'ENVIRONMENT', description: 'Environment')
+                            ]
                         )
-                        def clientInput = input(
-                        message: 'Teleport installation selected. Please enter Client:',
-                        parameters: [string(name: 'CLIENT', description: 'Client')]
-                        )
-                        def environmentInput = input(
-                        message: 'Teleport installation selected. Please enter Environment:',
-                        parameters: [string(name: 'ENVIRONMENT', description: 'Environment')]
-                        )
+
+                        def tokenInuput = teleportInputs['JOIN_TOKEN']
+                        def clientInput = teleportInputs['CLIENT']
+                        def environmentInput = teleportInputs['ENVIRONMENT']
                         ansiblePlaybook(
                             playbook: 'playbooks/install_teleport.yml',
                             inventory: 'inventory.ini',
