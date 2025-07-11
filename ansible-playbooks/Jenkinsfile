@@ -67,12 +67,6 @@ pipeline {
                     } else {
                         echo "Cronjob setup not requested or no file uploaded"
                     }
-
-                    // Save uploaded cronjob file if provided
-                  //  if (params.SETUP_CRONJOB && params.CRONJOB_FILE) {
-                   //     writeFile file: 'ansible/cronjob_file', text: params.CRONJOB_FILE.readToString()
-                   //     echo "Cronjob file saved2"
-                    //}
                 }
             }
         }
