@@ -139,7 +139,7 @@ pipeline {
                         echo "MySQL Image: ${mysqlImage}"
                         
                         ansiblePlaybook(
-#                            playbook: 'playbooks/containerize_services.yml',
+                            playbook: 'playbooks/containerize_services.yml',
                             inventory: 'inventory.ini',
                             extraVars: commonExtraVars + [
                                 hostname: params.HOSTNAME
