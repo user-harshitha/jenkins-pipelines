@@ -97,8 +97,49 @@ pipeline {
                     }
 
                     if (params.CONTAINERIZE_SERVICES) {
+                        def ContainerInputs = input(
+                        message: 'Containerize Services selected. Please enter the following details:',
+                        parameters: [
+                        choice(name: 'TOMCAT_VERSION', choices: ['Tomcat8','Tomcat9_JDK21', 'Tomcat9_JDK21_PHP-8_3', 'Tomcat11_JDK24'], description: 'Tomcat Version'),
+                        choice(name: 'PHP_VERSION', choices: ['PHP-7_JAVA-8','PHP-8_2_JAVA-8', 'PHP-8_3_JAVA-8', 'PHP-8_3_JAVA-21'], description: 'PHP Version'),
+                        choice(name: 'MYSQL_VERSION', choices: ['Mysql8'], description: 'MySQL Version')
+                            ]
+                        )
+                        def tomcat_version = ContainerInputs['TOMCAT_VERSION']
+                        def php_version = ContainerInputs['PHP_VERSION']
+                        def mysql_version = ContainerInputs['MYSQL_VERSION']    
+
+                        def imageMap = [
+                        Tomcat8: "harbor.perdix.co/dvara/tomcat8:v2",
+                        Tomcat9_JDK21: "harbor.perdix.co/dvara/tomcat:9.0.96-jdk21-v2",
+                        Tomcat9_JDK21_PHP_8_3: "harbor.perdix.co/dvara/tomcat:9.0.96-jdk21-php8.3-v2",
+                        Tomcat11_JDK24: "harbor.perdix.co/dvara/tomcat:11.04-jdk24",
+                        "PHP-7_JAVA-8": "harbor.perdix.co/dvara/java-8-php-fpm-7.0.33-composer:latest",
+                        "PHP-8_2_JAVA-8": "harbor.perdix.co/dvara/java-8-php-fpm-8.2-composer:latest",
+                        "PHP_8_3_JAVA_8": "harbor.perdix.co/dvara/java-8-php-fpm-8.3-composer:latest",
+                        "PHP_8_3_JAVA_21": "harbor.perdix.co/dvara/java-21-php-fpm-8.3-composer:v4",
+                        Mysql8: "harbor.perdix.co/dvara/mysql:8.0"
+                        ]            
+                        // Replace characters to match keys in imageMap
+                        def normalize = { it.replaceAll('-', '_').replaceAll('\\.', '_') }        
+                        def tomcatKey = normalize(tomcat_version)
+                        def phpKey = normalize(php_version)
+                        def mysqlKey = normalize(mysql_version)
+
+                        echo "Tomcat Version - ${tomcatKey}"
+                        echo "PHP Version - ${phpKey}"
+                        echo "MySQL Version - ${mysqlKey}"
+
+                        def tomcatImage = imageMap[tomcatKey]
+                        def phpImage = imageMap[phpKey]
+                        def mysqlImage = imageMap[mysqlKey]
+                        
+                        echo "Tomcat Image: ${tomcatImage}"
+                        echo "PHP Image: ${phpImage}"
+                        echo "MySQL Image: ${mysqlImage}"
+                        
                         ansiblePlaybook(
-                            playbook: 'playbooks/containerize_services.yml',
+#                            playbook: 'playbooks/containerize_services.yml',
                             inventory: 'inventory.ini',
                             extraVars: commonExtraVars + [
                                 hostname: params.HOSTNAME
