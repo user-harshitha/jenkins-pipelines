@@ -143,7 +143,10 @@ pipeline {
                             playbook: 'playbooks/containerize_services.yml',
                             inventory: 'inventory.ini',
                             extraVars: commonExtraVars + [
-                                hostname: params.HOSTNAME
+                                hostname: params.HOSTNAME,
+                                tomcat_image: tomcatImage,
+                                php_image: phpImage,
+                                mysql_image: mysqlImage
                             ]
                         )
                     }
