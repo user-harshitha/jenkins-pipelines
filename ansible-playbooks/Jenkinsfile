@@ -75,6 +75,7 @@ pipeline {
         stage('Run Ansible Playbooks') {
             steps {
                 script {
+                     dir('ansible') {
                     // Create inventory file
                     sh 'echo "[target_host]" > inventory.ini'
                     sh "echo \"${params.HOSTNAME}\" >> inventory.ini"
@@ -190,6 +191,8 @@ pipeline {
                         )
                     }
                     }
+
+                  }
                 }
             }
         }
