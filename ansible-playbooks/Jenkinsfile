@@ -180,31 +180,24 @@ pipeline {
                         )
                     }
 
-                    if (params.NGINX_CONFIG) {
-// Step 1: Ask for nginx_config checkbox
-def nginxChoice = input(
-  message: "Do you want to configure NGINX?",
-  parameters: [
-    booleanParam(name: 'nginx_config', defaultValue: false, description: 'Check to configure NGINX reverse proxy')
-  ]
-)
-
-// Step 2: Only show service list if nginx_config was selected
-if (nginxChoice == true || nginxChoice["nginx_config"] == true) {
+if (params.NGINX_CONFIG) {
     def selectedServices = input(
         message: "Select services to configure in NGINX",
         parameters: [
             choice(
                 name: 'services',
-                choices: ["ams-api", "encore", "forms", "kyc-service", "ns", "payment-portal", "perdix-server", "powerbi-service", "docker-php", "form-bulk-downloader", "fs"].join("\n"),
+                choices: [
+                    "ams-api", "encore", "forms", "kyc-service", "ns",
+                    "payment-portal", "perdix-server", "powerbi-service",
+                    "docker-php", "form-bulk-downloader", "fs", "mgmt",
+                    "ocr-service", "perdix-process-automator-service", "php"
+                ].join("\n"),
                 description: 'Select one or more apps'
             )
         ]
     )
 
-    // Use selectedServices in your playbook
     echo "Selected Services: ${selectedServices}"
-}
 
                             ansiblePlaybook(
                             playbook: 'playbooks/configure_nginx.yml',
