@@ -25,6 +25,10 @@ pipeline {
         )
         
         booleanParam(
+            name: 'NGINX_CONFIG',
+            description: 'Add reverse proxy to services'
+        )
+        booleanParam(
             name: 'SETUP_LOGROTATION',
             description: 'Setup logrotation'
         )
