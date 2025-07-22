@@ -179,37 +179,39 @@ pipeline {
                             ]
                         )
                     }
-                    if (params.NGINX_CONFIG) {
-                        // uncomment if dynamic inputs are required
-                        def nginxInputs = input(
-                        message: 'Nginx Config selected. Please choose the services to be added to nginx reverse proxy:',
-properties([
-  parameters([
+
+if (params.NGINX_CONFIG) {
+def nginxInputs = input(
+  id: 'nginxInput',
+  message: 'Nginx Config selected. Please choose the services to be added to nginx reverse proxy:',
+  parameters: [
     [$class: 'CascadeChoiceParameter',
-      choiceType: 'PT_CHECKBOX',
-      name: 'SERVICES',
-      description: 'Select one or more apps',
-      randomName: 'appChoices',
-      referencedParameters: '',
-      script: [
-        $class: 'GroovyScript',
-        fallbackScript: [classpath: [], sandbox: true, script: 'return ["ams-api", "encore", "forms", "kyc-service", "ns", "payment-portal", "perdix-server", "powerbi-service", "docker-php", "form-bulk-downloader", "fs", "mgmt", "ocr-service", "perdix-process-automator-service", "php"]'],
-        script: [classpath: [], sandbox: true, script: 'return ["ams-api", "encore", "forms", "kyc-service", "ns", "payment-portal", "perdix-server", "powerbi-service", "docker-php", "form-bulk-downloader", "fs", "mgmt", "ocr-service", "perdix-process-automator-service", "php"]']
-      ]
+     choiceType: 'PT_CHECKBOX',
+     name: 'SERVICES',
+     description: 'Select one or more apps',
+     referencedParameters: '',
+     randomName: 'appChoices',
+     script: [
+       $class: 'GroovyScript',
+       sandbox: true,
+       script: 'return ["ams-api", "encore", "forms", "kyc-service", "ns", "payment-portal", "perdix-server", "powerbi-service", "docker-php", "form-bulk-downloader", "fs", "mgmt", "ocr-service", "perdix-process-automator-service", "php"]',
+       fallbackScript: 'return ["ams-api", "encore", "forms", "kyc-service", "ns", "payment-portal", "perdix-server", "powerbi-service", "docker-php", "form-bulk-downloader", "fs", "mgmt", "ocr-service", "perdix-process-automator-service", "php"]'
+     ]
     ]
-  ])
-])
+  ]
 )
 
-                        def selectedApps = nginxInputs['SERVICES'].tokenize(',')
-                        ansiblePlaybook(
-                            playbook: 'playbooks/configure_nginx.yml',
-                            inventory: 'inventory.ini',
-                            extraVars: commonExtraVars + [
-                                selected_apps: selectedApps
-                            ]
-                        )
-                    }
+
+  def selectedApps = nginxInputs['SERVICES'].tokenize(',')
+  ansiblePlaybook(
+    playbook: 'playbooks/configure_nginx.yml',
+    inventory: 'inventory.ini',
+    extraVars: commonExtraVars + [
+      selected_apps: selectedApps
+    ]
+  )
+}
+
 
                     if (params.SETUP_LOGROTATION) {
                         ansiblePlaybook(
