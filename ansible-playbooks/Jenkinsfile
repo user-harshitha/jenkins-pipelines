@@ -48,7 +48,6 @@ pipeline {
   "payment-portal",
   "perdix-server",
   "powerbi-service",
-  "docker-php",
   "form-bulk-downloader",
   "fs",
   "mgmt",
