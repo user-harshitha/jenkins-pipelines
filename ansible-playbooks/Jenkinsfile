@@ -181,7 +181,7 @@ pipeline {
                     }
                     if (params.NGINX_CONFIG) {
                         // uncomment if dynamic inputs are required
-                        def teleportInputs = input(
+                        def nginxInputs = input(
                         message: 'Nginx Config selected. Please choose the services to be added to nginx reverse proxy:',
 properties([
   parameters([
@@ -201,7 +201,7 @@ properties([
 ])
 )
 
-                        def selectedApps = params.SERVICES.tokenize(',')
+                        def selectedApps = nginxInputs['SERVICES'].tokenize(',')
                         ansiblePlaybook(
                             playbook: 'playbooks/configure_nginx.yml',
                             inventory: 'inventory.ini',
