@@ -175,6 +175,24 @@ pipeline {
                             ]
                         )
                     }
+                    if (params.NGINX_CONFIG) {
+                        // uncomment if dynamic inputs are required
+                        def teleportInputs = input(
+                        message: 'Nginx Config selected. Please choose the services to be added to nginx reverse proxy:',
+                        parameters: [
+                        choice(name: 'SERVICES', choices: ['ams-api', 'encore', 'forms', 'kyc-service', 'ns', 'payment-portal', 'perdix-server', 'powerbi-service', 'docker-php', 'form-bulk-downloader', 'fs', 'mgmt', 'ocr-service', 'perdix-process-automator-service', 'php'  ], description: 'Select application to enable', multiple: true)
+                            ]
+                        )
+
+                        def selectedApps = params.SERVICES.tokenize(',')
+                        ansiblePlaybook(
+                            playbook: 'playbooks/configure_nginx.yml',
+                            inventory: 'inventory.ini',
+                            extraVars: commonExtraVars + [
+                                selected_apps: selectedApps
+                            ]
+                        )
+                    }
 
                     if (params.SETUP_LOGROTATION) {
                         ansiblePlaybook(
