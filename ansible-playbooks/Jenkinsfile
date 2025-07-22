@@ -180,30 +180,13 @@ pipeline {
                         )
                     }
 
-if (params.NGINX_CONFIG) {
-    def selectedServices = input(
-        message: "Select services to configure in NGINX",
-        parameters: [
-            choice(
-                name: 'services',
-                choices: [
-                    "ams-api", "encore", "forms", "kyc-service", "ns",
-                    "payment-portal", "perdix-server", "powerbi-service",
-                    "docker-php", "form-bulk-downloader", "fs", "mgmt",
-                    "ocr-service", "perdix-process-automator-service", "php"
-                ].join("\n"),
-                description: 'Select one or more apps'
-            )
-        ]
-    )
-
-    echo "Selected Services: ${selectedServices}"
+                    if (params.NGINX_CONFIG) {
 
                             ansiblePlaybook(
                             playbook: 'playbooks/configure_nginx.yml',
                             inventory: 'inventory.ini',
                             extraVars: commonExtraVars + [
-                            selected_apps: selectedServices
+                           // selected_apps: selectedServices
                             ]
                             )
                     }
