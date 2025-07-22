@@ -201,13 +201,13 @@ pipeline {
                     }
 
                     if (params.NGINX_CONFIG) {
-                            def services = params.SERVICES?.tokenize(',') ?: []
+                            def services = params.NGINX_PROXY_CONFIG ?: []
                             echo "Selected services: ${services}"
                             ansiblePlaybook(
                             playbook: 'playbooks/configure_nginx.yml',
                             inventory: 'inventory.ini',
                             extraVars: commonExtraVars + [
-                            selected_apps: params.NGINX_PROXY_CONFIG
+                            selected_apps: services
                             ]
                             )
                     }
