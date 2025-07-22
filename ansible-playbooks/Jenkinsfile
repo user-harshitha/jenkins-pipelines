@@ -207,7 +207,7 @@ pipeline {
                             playbook: 'playbooks/configure_nginx.yml',
                             inventory: 'inventory.ini',
                             extraVars: commonExtraVars + [
-                            selected_apps: services
+                            selected_apps: params.NGINX_PROXY_CONFIG
                             ]
                             )
                     }
