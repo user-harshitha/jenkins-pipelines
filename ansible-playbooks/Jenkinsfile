@@ -39,6 +39,26 @@ pipeline {
             booleanParam(name: 'NGINX_CONFIG', defaultValue: false, description: 'Check to configure NGINX reverse proxy')
     // SERVICES will be managed by Active Choices UI
 
+  activeChoice choiceType: 'PT_CHECKBOX', filterLength: 1, filterable: false, name: 'NGINX_PROXY_CONFIG', randomName: 'choice-parameter-279894420619781', script: groovyScript(fallbackScript: [classpath: [], oldScript: '', sandbox: true, script: ''], script: [classpath: [], oldScript: '', sandbox: true, script: '''return [
+  "ams-api",
+  "encore",
+  "forms",
+  "kyc-service",
+  "ns",
+  "payment-portal",
+  "perdix-server",
+  "powerbi-service",
+  "docker-php",
+  "form-bulk-downloader",
+  "fs",
+  "mgmt",
+  "ocr-service",
+  "perdix-process-automator-service",
+  "php"
+]
+'''])
+
+
 
     }
 
