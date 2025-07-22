@@ -36,39 +36,8 @@ pipeline {
         
         base64File description: 'Upload the cronjob file', name: 'CRONJOB_FILE'
 
-properties([
-  parameters([
-    booleanParam(
-      name: 'NGINX_CONFIG',
-      defaultValue: false,
-      description: 'Check to configure NGINX reverse proxy'
-    ),
-    [
-      $class: 'CascadeChoiceParameter',
-      choiceType: 'PT_CHECKBOX',
-      name: 'SERVICES',
-      description: 'Select services for NGINX',
-      referencedParameters: 'NGINX_CONFIG',
-      randomName: 'servicesList',
-      filterLength: 1,
-      filterable: true,
-      script: [
-        $class: 'GroovyScript',
-        sandbox: true,
-        script: '''
-          if (NGINX_CONFIG.toBoolean()) {
-            return ["ams-api", "encore", "forms", "kyc-service", "ns", 
-                    "payment-portal", "perdix-server", "powerbi-service", 
-                    "docker-php", "form-bulk-downloader", "fs", "mgmt", 
-                    "ocr-service", "perdix-process-automator-service", "php"]
-          } else {
-            return []
-          }
-        '''
-      ]
-    ]
-  ])
-])
+            booleanParam(name: 'NGINX_CONFIG', defaultValue: false, description: 'Check to configure NGINX reverse proxy')
+    // SERVICES will be managed by Active Choices UI
 
 
     }
@@ -211,20 +180,17 @@ properties([
                         )
                     }
 
-if (params.NGINX_CONFIG && params.SERVICES) {
-    def selectedApps = params.SERVICES.tokenize(',')
-
-    echo "Selected apps: ${selectedApps}"
-
-    ansiblePlaybook(
-      playbook: 'playbooks/configure_nginx.yml',
-      inventory: 'inventory.ini',
-      extraVars: commonExtraVars + [
-        selected_apps: selectedApps
-      ]
-    )
-}
-
+                    if (params.NGINX_CONFIG) {
+                            def services = params.SERVICES?.tokenize(',') ?: []
+                            echo "Selected services: ${services}"
+                            ansiblePlaybook(
+                            playbook: 'playbooks/configure_nginx.yml',
+                            inventory: 'inventory.ini',
+                            extraVars: commonExtraVars + [
+                            selected_apps: services
+                            ]
+                            )
+                    }
 
 
                     if (params.SETUP_LOGROTATION) {
