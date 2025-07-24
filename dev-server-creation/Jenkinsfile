@@ -113,10 +113,10 @@ pipeline {
             steps {
                 script {
                   dir('Server_Creation/dev/ansible'){
-                    sh '''
-                    echo "[target_host]" > inventory.ini'
+                    sh """
+                    echo "[target_host]" > inventory.ini
                     echo "${params.BASE_SERVER_HOSTNAME}" >> inventory.ini
-                    '''
+                    """
                   sshagent(['ansible_ssh']) {
                   sh '''
                   ansible-playbook -i inventory.ini extract-volume.yml
