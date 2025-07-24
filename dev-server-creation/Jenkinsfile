@@ -52,7 +52,7 @@ pipeline {
             description: 'Enter existing server instance ID'
         )
         
-        string(
+/*        string(
             name: 'APP_VOLUME_ID',
             description: 'Enter App Volume ID'
         )
@@ -65,7 +65,8 @@ pipeline {
         string(
             name: 'DATABASE_VOLUME_ID',
             description: 'Enter Database Volume ID'
-        )
+        ) 
+*/
         
         // Instance Tags
         string(
@@ -108,10 +109,21 @@ pipeline {
         }
       }
     }
-
         stage('Prepare') {
             steps {
                 script {
+                  dir('Server_Creation/dev/ansible'){
+                    sh '''
+                    echo "[target_host]" > inventory.ini'
+                    echo "${params.BASE_SERVER_HOSTNAME}" >> inventory.ini
+                    '''
+                  sshagent(['ansible_ssh']) {
+                  sh '''
+                  ansible-playbook -i inventory.ini extract-volume.yml
+                  '''
+                  }
+                  
+                  def volumeJson = readJSON file: '/tmp/volume_ids.json'               
                     // Setup Environmental variables
                     env.AMI_ID                      = "ami-04d143d89e43ce7fb"   
                     env.EXISTING_SERVER_INSTANCE_ID = params.EXISTING_SERVER_INSTANCE_ID      // Ubuntu 22.04 AMI
@@ -122,9 +134,9 @@ pipeline {
                     env.CLIENT                      = params.NEW_CLIENT
                     env.ENVIRONMENT                 = params.NEW_ENVIRONMENT
                     env.HOSTNAME                    = params.NEW_SERVER_HOSTNAME
-                    env.VOLUME_ID_APP               = params.APP_VOLUME_ID
-                    env.VOLUME_ID_APPDATA           = params.APPDATA_VOLUME_ID
-                    env.VOLUME_ID_DATABASE          = params.DATABASE_VOLUME_ID
+                    env.APP_VOLUME_ID               = volumeJson.app
+                    env.APPDATA_VOLUME_ID           = volumeJson.appdata
+                    env.DATABASE_VOLUME_ID          = volumeJson.database
                     env.ROUTE53_ZONE_ID             = "Z14HUFX62W338H"
                     env.LISTENER_ARN                = "arn:aws:elasticloadbalancing:ap-south-1:203862109330:listener/app/DEV-MMB-ELB/617d6a7924757988/3c6ee87c6cfc2be5"
                     env.PERDIX_URL                  = params.PERDIX_URL
@@ -147,9 +159,9 @@ pipeline {
                     echo "Perdix URL: ${params.PERDIX_URL}"
                     echo "File Storage: ${params.STORAGE_TYPE}"
                     echo "Existing Server Instance ID: ${params.EXISTING_SERVER_INSTANCE_ID}"
-                    echo "App Volume ID: ${params.APP_VOLUME_ID}"
-                    echo "AppData Volume ID: ${params.APPDATA_VOLUME_ID}"
-                    echo "Database Volume ID: ${params.DATABASE_VOLUME_ID}"
+                    echo "App Volume ID: ${env.APP_VOLUME_ID}"
+                    echo "AppData Volume ID: ${env.APPDATA_VOLUME_ID}"
+                    echo "Database Volume ID: ${env.DATABASE_VOLUME_ID}"
                     echo "Instance Tags:"
                     echo "  Name: ${params.TAG_NAME}"
                     echo "  BillableParty: ${env.BILLABLEPARTY_TG}"
@@ -170,6 +182,8 @@ pipeline {
             if (result != 0) {
                 error("Server already present. Exiting pipeline.")
             }
+
+                  }
 
                 }
             }
@@ -253,7 +267,7 @@ dir(env.ENV_PATH) {
   }
 }
 
-    stage('Setup AWS Credentials and Validate Terraform') {
+/*    stage('Setup AWS Credentials and Validate Terraform') {
       steps {
         script {
             dir(env.ENV_PATH){
@@ -278,10 +292,10 @@ dir(env.ENV_PATH) {
         }
         
       }
-    }
+    } */
     
 
-stage('Terraform Apply') {
+/* stage('Terraform Apply') {
   steps {
     script {
       dir(env.ENV_PATH) {
@@ -299,16 +313,16 @@ stage('Terraform Apply') {
               terraform output -json > tf_outputs.json
             '''
 
-            def tfOutputs = readJSON file: 'tf_outputs.json'
-            def tgArn = tfOutputs.target_group_info.value.arn
+           // def tfOutputs = readJSON file: 'tf_outputs.json'
+           // def tgArn = tfOutputs.target_group_info.value.arn
           }
         }
       }
     }
   }
-}
+} */
 
-stage('Commit Terraform State') {
+/*stage('Commit Terraform State') {
   steps {
     script {
         dir(env.ENV_PATH){
@@ -318,8 +332,8 @@ stage('Commit Terraform State') {
         passwordVariable: 'GIT_TOKEN'
       )]) {
 
-        // Clone repo, copy state, commit and push
-        sh """
+        //Clone repo, copy state, commit and push
+         sh """
           # Set Git user config
           git config user.email "harshithas22@gmail.com"
           git config user.name "user-harshitha"
@@ -329,15 +343,15 @@ stage('Commit Terraform State') {
           git add terraform.tfstate terraform.tfvars tf_outputs.json main.tf setup.sh 
           git commit -m "Update state for ${env.ENVIRONMENT}-${env.CLIENT}"
           git push origin main
-        """
+        """ 
       }
         }
  
     }
   }
-}       
+} */      
 
-        stage('Commit folders for new client in jenkins git repo') {
+ /*      stage('Commit folders for new client in jenkins git repo') {
             steps {
               script{
               dir(env.ENV_PATH){
@@ -363,7 +377,7 @@ stage('Commit Terraform State') {
               }
               }
             }
-         }
+         } */
 
 
     //post {
